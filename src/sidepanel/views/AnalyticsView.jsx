@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { db } from '../../storage/db';
 import {
@@ -174,3 +173,207 @@ const AnalyticsView = ({ activeProject }) => {
       </div>
 
       {stats.total === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-gray-400 mb-4">
+            <svg
+              className="mx-auto h-12 w-12"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No analytics data yet</h3>
+          <p className="text-gray-600">
+            Start using the auto-fill feature on social media platforms to track your activity
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Platform Distribution */}
+            {getPlatformData().length > 0 && (
+              <div className="card">
+                <h3 className="text-lg font-semibold mb-4">Submissions by Platform</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={getPlatformData()}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="platform" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="submissions" fill="#0ea5e9" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Content Type Distribution */}
+            {getTypeData().length > 0 && (
+              <div className="card">
+                <h3 className="text-lg font-semibold mb-4">Posts vs Comments</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={getTypeData()}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {getTypeData().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
+          {/* Activity Timeline */}
+          {stats.recentActivity.length > 0 && (
+            <div className="card mb-6">
+              <h3 className="text-lg font-semibold mb-4">Activity Timeline (Last 30 Days)</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={stats.recentActivity}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="count" stroke="#0ea5e9" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Top Performers */}
+          {getTopPerformers().length > 0 && (
+            <div className="card mb-6">
+              <h3 className="text-lg font-semibold mb-4">Top Performing Content</h3>
+              <div className="space-y-3">
+                {getTopPerformers().map((item) => {
+                  const score =
+                    item.engagement.likes +
+                    item.engagement.comments * 2 +
+                    item.engagement.shares * 3;
+                  return (
+                    <div key={item.id} className="border-l-4 border-primary-500 pl-4 py-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700">
+                          {item.platform.toUpperCase()} • {item.type}
+                        </span>
+                        <span className="text-sm font-bold text-primary-600">Score: {score}</span>
+                      </div>
+                      <div className="flex gap-4 text-xs text-gray-600">
+                        <span>❤️ {item.engagement.likes}</span>
+                        <span>💬 {item.engagement.comments}</span>
+                        <span>🔄 {item.engagement.shares}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(item.submittedAt).toLocaleString()}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Recent Submissions */}
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">Recent Submissions</h3>
+            <div className="space-y-2">
+              {analytics.slice(0, 10).map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer"
+                  onClick={() => setSelectedMetric(item)}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-medium text-gray-900">
+                        {item.platform.toUpperCase()}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {item.type === 'post' ? '📝' : '💬'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      {new Date(item.submittedAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUpdateEngagement(item.id);
+                    }}
+                    className="btn btn-secondary text-xs"
+                  >
+                    Update Metrics
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Engagement Modal */}
+      {selectedMetric && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setSelectedMetric(null)}
+        >
+          <div className="card max-w-md w-full m-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-4">Submission Details</h3>
+            <div className="space-y-3">
+              <div>
+                <span className="label">Platform:</span>
+                <p className="text-gray-900">{selectedMetric.platform.toUpperCase()}</p>
+              </div>
+              <div>
+                <span className="label">Type:</span>
+                <p className="text-gray-900">{selectedMetric.type}</p>
+              </div>
+              <div>
+                <span className="label">Submitted:</span>
+                <p className="text-gray-900">
+                  {new Date(selectedMetric.submittedAt).toLocaleString()}
+                </p>
+              </div>
+              {selectedMetric.engagement && (
+                <div>
+                  <span className="label">Engagement:</span>
+                  <div className="flex gap-4 mt-1">
+                    <span>❤️ {selectedMetric.engagement.likes}</span>
+                    <span>💬 {selectedMetric.engagement.comments}</span>
+                    <span>🔄 {selectedMetric.engagement.shares}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setSelectedMetric(null)}
+              className="btn btn-secondary w-full mt-4"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AnalyticsView;

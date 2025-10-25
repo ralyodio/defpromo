@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { db } from '../../storage/db';
+import { scrapeAndExtract } from '../../services/scraper';
+import { generateContent } from '../../services/openai';
 
 const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpdate }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -9,7 +11,55 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
     description: '',
   });
   const [loading, setLoading] = useState(false);
+  const [scraping, setScraping] = useState(false);
   const [error, setError] = useState(null);
+  const [scrapedData, setScrapedData] = useState(null);
+
+  const handleScrapeUrl = async () => {
+    if (!formData.url) {
+      setError('Please enter a URL first');
+      return;
+    }
+
+    setScraping(true);
+    setError(null);
+
+    try {
+      const settings = await db.settings.get('main');
+      if (!settings?.scraperKey) {
+        setError('Please configure your scraper API key in Settings');
+        return;
+      }
+
+      // Scrape the URL
+      const extracted = await scrapeAndExtract({
+        url: formData.url,
+        apiKey: settings.scraperKey,
+        service: settings.scraperService || 'scrapingbee',
+      });
+
+      setScrapedData(extracted);
+
+      // Auto-fill form with scraped data
+      if (extracted.title && !formData.name) {
+        setFormData((prev) => ({
+          ...prev,
+          name: extracted.title,
+        }));
+      }
+
+      if (extracted.description && !formData.description) {
+        setFormData((prev) => ({
+          ...prev,
+          description: extracted.description,
+        }));
+      }
+    } catch (err) {
+      setError(`Scraping failed: ${err.message}`);
+    } finally {
+      setScraping(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,7 +71,7 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
         id: `proj-${Date.now()}`,
         name: formData.name,
         url: formData.url,
-        description: formData.description,
+        description: formData.description || scrapedData?.description || '',
         targetAudience: '',
         keyFeatures: [],
         tone: 'professional',
@@ -33,6 +83,7 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
       await onProjectsUpdate();
       
       setFormData({ name: '', url: '', description: '' });
+      setScrapedData(null);
       setShowCreateForm(false);
     } catch (err) {
       setError(err.message);
