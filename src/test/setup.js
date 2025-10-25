@@ -3,12 +3,6 @@ import { vi } from 'vitest';
 
 // Setup fake-indexeddb before any other imports
 import 'fake-indexeddb/auto';
-import { IDBFactory } from 'fake-indexeddb';
-
-// Ensure indexedDB is available globally
-if (typeof global.indexedDB === 'undefined') {
-  global.indexedDB = new IDBFactory();
-}
 
 // Mock chrome API for testing
 global.chrome = {
@@ -42,10 +36,4 @@ global.chrome = {
     open: vi.fn(),
     setOptions: vi.fn(),
   },
-};
-
-// Mock IndexedDB
-global.indexedDB = {
-  open: vi.fn(),
-  deleteDatabase: vi.fn(),
 };

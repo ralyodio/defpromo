@@ -23,7 +23,7 @@
     "https://web.telegram.org/*"
   ],
   "background": {
-    "service_worker": "background/background-firefox.js"
+    "scripts": ["background/background-firefox.js"]
   },
   "action": {
     "default_popup": "src/popup/index.html",

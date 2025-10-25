@@ -48,7 +48,10 @@ export default defineConfig({
           if (chunkInfo.name.startsWith('content-')) {
             return 'content/[name].js';
           }
-          if (chunkInfo.name === 'background' || chunkInfo.name === 'background-firefox') {
+          if (chunkInfo.name === 'background') {
+            return 'background/service-worker.js';
+          }
+          if (chunkInfo.name === 'background-firefox') {
             return 'background/[name].js';
           }
           return '[name]/[name].js';
