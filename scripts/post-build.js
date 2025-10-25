@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { copyFileSync, existsSync } from 'fs';
+import { copyFileSync, existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 
 const browser = process.argv[2] || 'chrome';
@@ -14,7 +14,14 @@ if (browser === 'firefox') {
   console.log('Copying Firefox-specific manifest...');
   if (existsSync('public/manifest.firefox.v2.json')) {
     copyFileSync('public/manifest.firefox.v2.json', join(distDir, 'manifest.firefox.json'));
-    console.log('✓ Firefox Manifest V2 copied to dist/manifest.firefox.json');
+    console.log('✓ Firefox Manifest copied to dist/manifest.firefox.json');
+  }
+  
+  // Remove the v2 file if it was copied by Vite
+  const v2Path = join(distDir, 'manifest.firefox.v2.json');
+  if (existsSync(v2Path)) {
+    unlinkSync(v2Path);
+    console.log('✓ Removed dist/manifest.firefox.v2.json');
   }
 }
 
@@ -27,7 +34,7 @@ if (browser === 'firefox') {
   console.log('1. Go to about:debugging#/runtime/this-firefox');
   console.log('2. Click "Load Temporary Add-on"');
   console.log(`3. Select ${distDir}/manifest.firefox.json`);
-  console.log('\nNote: Using Manifest V2 (from manifest.firefox.v2.json) as Firefox does not yet support Manifest V3');
+  console.log('\nNote: Firefox does not yet support Manifest V3');
 } else {
   console.log('\n📦 Chrome/Edge Build Ready!');
   console.log('To test in Chrome/Edge:');
