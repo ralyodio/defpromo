@@ -12,8 +12,14 @@ export default defineConfig({
         const browser = process.env.BROWSER || 'chrome';
         const distDir = `dist/${browser}`;
         
-        // Copy manifest.json to browser-specific dist
-        copyFileSync('public/manifest.json', `${distDir}/manifest.json`);
+        // Copy browser-specific manifest
+        const manifestSource = browser === 'firefox' 
+          ? 'public/manifest.firefox.json'
+          : browser === 'safari'
+          ? 'public/manifest.safari.json'
+          : 'public/manifest.json';
+        
+        copyFileSync(manifestSource, `${distDir}/manifest.json`);
         
         // Create icons directory and copy icons
         try {
