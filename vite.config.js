@@ -1,9 +1,30 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import { copyFileSync, mkdirSync, readdirSync } from 'fs';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'copy-manifest',
+      closeBundle() {
+        // Copy manifest.json to dist
+        copyFileSync('public/manifest.json', 'dist/manifest.json');
+        
+        // Create icons directory and copy icons
+        try {
+          mkdirSync('dist/icons', { recursive: true });
+          const icons = readdirSync('public/icons');
+          icons.forEach((icon) => {
+            copyFileSync(`public/icons/${icon}`, `dist/icons/${icon}`);
+          });
+        } catch (e) {
+          console.error('Error copying icons:', e);
+        }
+      },
+    },
+  ],
   build: {
     rollupOptions: {
       input: {
