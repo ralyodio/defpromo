@@ -1,4 +1,4 @@
-# DefNotPromo - Development Progress
+# DefPromo - Development Progress
 
 ## Current Status: Foundation Complete ✅
 
@@ -111,7 +111,7 @@ The extension foundation is fully built and ready for feature implementation.
 ## 📁 Current File Structure
 
 ```
-defnotpromo/
+defpromo/
 ├── src/
 │   ├── sidepanel/
 │   │   ├── App.jsx ✅

@@ -1,4 +1,4 @@
-# DefNotPromo - Testing Guide
+# DefPromo - Testing Guide
 
 ## Automated Tests
 
@@ -79,7 +79,7 @@ pnpm test src/services/__tests__/openai.test.js
 
 5. **Auto-Fill - Twitter/X**
    - [ ] Visit twitter.com
-   - [ ] See DefNotPromo button on compose
+   - [ ] See DefPromo button on compose
    - [ ] Click button fills content
    - [ ] Content appears in textarea
    - [ ] Can post successfully

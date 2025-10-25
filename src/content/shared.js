@@ -4,29 +4,29 @@
  */
 
 /**
- * Create and inject the DefNotPromo auto-fill button
+ * Create and inject the DefPromo auto-fill button
  * @param {HTMLElement} targetElement - The form element to attach the button to
  * @param {string} platform - Platform name (e.g., 'twitter', 'reddit')
  * @param {string} type - Content type ('post' or 'comment')
  * @param {Function} fillCallback - Callback function to fill the form with content
  */
 export const injectAutoFillButton = (targetElement, platform, type, fillCallback) => {
-  if (targetElement.dataset.defnotpromoInjected) {
+  if (targetElement.dataset.defpromoInjected) {
     return; // Already injected
   }
 
   const buttonContainer = document.createElement('div');
-  buttonContainer.className = 'defnotpromo-button-container';
+  buttonContainer.className = 'defpromo-button-container';
   buttonContainer.style.cssText = 'margin: 8px 0;';
 
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = 'defnotpromo-btn';
+  button.className = 'defpromo-btn';
   button.innerHTML = `
     <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style="display: inline-block; margin-right: 4px; vertical-align: middle;">
       <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
     </svg>
-    <span>Fill with DefNotPromo</span>
+    <span>Fill with DefPromo</span>
   `;
   button.style.cssText = `
     background: #0ea5e9;
@@ -65,7 +65,7 @@ export const injectAutoFillButton = (targetElement, platform, type, fillCallback
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style="display: inline-block; margin-right: 4px; vertical-align: middle;">
             <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
           </svg>
-          <span>Fill with DefNotPromo</span>
+          <span>Fill with DefPromo</span>
         `;
         button.disabled = false;
       }, 2000);
@@ -77,7 +77,7 @@ export const injectAutoFillButton = (targetElement, platform, type, fillCallback
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style="display: inline-block; margin-right: 4px; vertical-align: middle;">
             <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
           </svg>
-          <span>Fill with DefNotPromo</span>
+          <span>Fill with DefPromo</span>
         `;
         button.style.background = '#0ea5e9';
         button.disabled = false;
@@ -87,7 +87,7 @@ export const injectAutoFillButton = (targetElement, platform, type, fillCallback
 
   buttonContainer.appendChild(button);
   targetElement.parentNode.insertBefore(buttonContainer, targetElement.nextSibling);
-  targetElement.dataset.defnotpromoInjected = 'true';
+  targetElement.dataset.defpromoInjected = 'true';
 };
 
 /**

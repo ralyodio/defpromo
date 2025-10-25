@@ -42,7 +42,7 @@ const Popup = () => {
 
   return (
     <div className="p-4">
-      <h1 className="text-lg font-bold mb-4">DefNotPromo</h1>
+      <h1 className="text-lg font-bold mb-4">DefPromo</h1>
       <button onClick={openSidePanel} className="btn btn-primary w-full">
         Open Side Panel
       </button>

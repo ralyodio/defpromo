@@ -1,7 +1,7 @@
 // Stacker News content script
 import { injectAutoFillButton, initContentScript, waitForDOM } from './shared.js';
 
-console.log('DefNotPromo: Stacker News content script loaded');
+console.log('DefPromo: Stacker News content script loaded');
 
 const PLATFORM = 'stacker';
 
@@ -16,7 +16,7 @@ const checkForForms = () => {
   const commentBoxes = document.querySelectorAll('textarea[placeholder*="reply"]');
   
   postBoxes.forEach((box) => {
-    if (!box.dataset.defnotpromoInjected) {
+    if (!box.dataset.defpromoInjected) {
       injectAutoFillButton(box, PLATFORM, 'post', (content) => {
         box.value = content;
         box.dispatchEvent(new Event('input', { bubbles: true }));
@@ -25,7 +25,7 @@ const checkForForms = () => {
   });
 
   commentBoxes.forEach((box) => {
-    if (!box.dataset.defnotpromoInjected) {
+    if (!box.dataset.defpromoInjected) {
       injectAutoFillButton(box, PLATFORM, 'comment', (content) => {
         box.value = content;
         box.dispatchEvent(new Event('input', { bubbles: true }));

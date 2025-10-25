@@ -1,6 +1,6 @@
 ### 🧠 **All-Screens Design Prompt for UX Pilot AI**
 
-**Project:** DefNotPromo
+**Project:** DefPromo
 **Goal:** Design a **complete cross-browser extension UI system** for an AI-powered social media automation tool.
 
 **Visual Style:**
@@ -83,7 +83,7 @@
 
 **Deliverables:**
 
-* Figma page: “DefNotPromo UI Library”
+* Figma page: “DefPromo UI Library”
 * Figma page: “Screens” with each major screen listed above
 * Components linked to Light/Dark theme variables
 * Organized frames and auto layout applied

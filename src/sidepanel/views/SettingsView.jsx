@@ -54,7 +54,7 @@ const SettingsView = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `defnotpromo-backup-${Date.now()}.json`;
+      a.download = `defpromo-backup-${Date.now()}.json`;
       a.click();
       URL.revokeObjectURL(url);
       setMessage({ type: 'success', text: 'Data exported successfully!' });
@@ -181,7 +181,7 @@ const SettingsView = () => {
       <div className="card mt-6 bg-gray-50">
         <h3 className="text-lg font-semibold mb-2">About</h3>
         <p className="text-sm text-gray-600">
-          DefNotPromo v1.0.0
+          DefPromo v1.0.0
         </p>
         <p className="text-xs text-gray-500 mt-2">
           AI-powered social media promotion assistant

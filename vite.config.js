@@ -9,15 +9,18 @@ export default defineConfig({
     {
       name: 'copy-manifest',
       closeBundle() {
-        // Copy manifest.json to dist
-        copyFileSync('public/manifest.json', 'dist/manifest.json');
+        const browser = process.env.BROWSER || 'chrome';
+        const distDir = `dist/${browser}`;
+        
+        // Copy manifest.json to browser-specific dist
+        copyFileSync('public/manifest.json', `${distDir}/manifest.json`);
         
         // Create icons directory and copy icons
         try {
-          mkdirSync('dist/icons', { recursive: true });
+          mkdirSync(`${distDir}/icons`, { recursive: true });
           const icons = readdirSync('public/icons');
           icons.forEach((icon) => {
-            copyFileSync(`public/icons/${icon}`, `dist/icons/${icon}`);
+            copyFileSync(`public/icons/${icon}`, `${distDir}/icons/${icon}`);
           });
         } catch (e) {
           console.error('Error copying icons:', e);
@@ -26,12 +29,15 @@ export default defineConfig({
     },
   ],
   build: {
+    outDir: process.env.BROWSER ? `dist/${process.env.BROWSER}` : 'dist/chrome',
     rollupOptions: {
       input: {
+        sidebar: resolve(__dirname, 'src/sidebar/index.html'),
         sidepanel: resolve(__dirname, 'src/sidepanel/index.html'),
         popup: resolve(__dirname, 'src/popup/index.html'),
         background: resolve(__dirname, 'src/background/service-worker.js'),
         'background-firefox': resolve(__dirname, 'src/background/background-firefox.js'),
+        'content-sidebar-injector': resolve(__dirname, 'src/content/sidebar-injector.js'),
         'content-twitter': resolve(__dirname, 'src/content/twitter.js'),
         'content-linkedin': resolve(__dirname, 'src/content/linkedin.js'),
         'content-reddit': resolve(__dirname, 'src/content/reddit.js'),
@@ -60,7 +66,6 @@ export default defineConfig({
         assetFileNames: 'assets/[name]-[hash][extname]',
       },
     },
-    outDir: 'dist',
     emptyOutDir: true,
   },
   test: {

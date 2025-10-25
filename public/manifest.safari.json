@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "DefNotPromo",
+  "name": "DefPromo",
   "version": "1.0.0",
   "description": "AI-powered social media self-promotion assistant with analytics",
   "permissions": [

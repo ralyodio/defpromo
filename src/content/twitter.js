@@ -1,5 +1,5 @@
 // Twitter/X content script
-console.log('DefNotPromo: Twitter content script loaded');
+console.log('DefPromo: Twitter content script loaded');
 
 /**
  * Detect Twitter post/comment forms and inject auto-fill button
@@ -29,16 +29,16 @@ const checkForForms = () => {
   const replyBoxes = document.querySelectorAll('[data-testid="tweetTextarea_0"][aria-label*="reply"]');
   
   tweetBoxes.forEach((box) => {
-    if (!box.dataset.defnotpromoInjected) {
+    if (!box.dataset.defpromoInjected) {
       injectButton(box, 'post');
-      box.dataset.defnotpromoInjected = 'true';
+      box.dataset.defpromoInjected = 'true';
     }
   });
 
   replyBoxes.forEach((box) => {
-    if (!box.dataset.defnotpromoInjected) {
+    if (!box.dataset.defpromoInjected) {
       injectButton(box, 'comment');
-      box.dataset.defnotpromoInjected = 'true';
+      box.dataset.defpromoInjected = 'true';
     }
   });
 };
@@ -51,13 +51,13 @@ const injectButton = (textarea, type) => {
 
   // Create button
   const button = document.createElement('button');
-  button.className = 'defnotpromo-btn';
+  button.className = 'defpromo-btn';
   button.innerHTML = `
     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
       <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
     </svg>
   `;
-  button.title = 'Fill with DefNotPromo content';
+  button.title = 'Fill with DefPromo content';
   button.style.cssText = `
     background: #0ea5e9;
     color: white;

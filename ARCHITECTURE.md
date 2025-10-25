@@ -1,4 +1,4 @@
-# DefNotPromo - Architecture Documentation
+# DefPromo - Architecture Documentation
 
 ## Overview
 Cross-browser web extension for automated social media self-promotion with AI-generated content, comprehensive analytics, and A/B testing capabilities.
@@ -140,7 +140,7 @@ package "IndexedDB Structure" {
 
 ## Project Structure
 ```
-defnotpromo/
+defpromo/
 ├── src/
 │   ├── popup/
 │   │   ├── App.jsx              # Main popup component

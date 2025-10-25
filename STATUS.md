@@ -1,4 +1,4 @@
-# DefNotPromo - Current Status
+# DefPromo - Current Status
 
 **Last Updated:** 2025-10-25  
 **Build Status:** ✅ Passing  

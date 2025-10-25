@@ -1,7 +1,7 @@
 // Bluesky content script
 import { injectAutoFillButton, initContentScript, waitForDOM } from './shared.js';
 
-console.log('DefNotPromo: Bluesky content script loaded');
+console.log('DefPromo: Bluesky content script loaded');
 
 const PLATFORM = 'bluesky';
 
@@ -16,7 +16,7 @@ const checkForForms = () => {
   const replyBoxes = document.querySelectorAll('[contenteditable="true"][placeholder*="Write your reply"]');
   
   postBoxes.forEach((box) => {
-    if (!box.dataset.defnotpromoInjected) {
+    if (!box.dataset.defpromoInjected) {
       injectAutoFillButton(box, PLATFORM, 'post', (content) => {
         box.textContent = content;
         box.dispatchEvent(new Event('input', { bubbles: true }));
@@ -25,7 +25,7 @@ const checkForForms = () => {
   });
 
   replyBoxes.forEach((box) => {
-    if (!box.dataset.defnotpromoInjected) {
+    if (!box.dataset.defpromoInjected) {
       injectAutoFillButton(box, PLATFORM, 'comment', (content) => {
         box.textContent = content;
         box.dispatchEvent(new Event('input', { bubbles: true }));

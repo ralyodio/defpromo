@@ -1,6 +1,6 @@
 {
   "manifest_version": 2,
-  "name": "DefNotPromo",
+  "name": "DefPromo",
   "version": "1.0.0",
   "description": "AI-powered social media self-promotion assistant with analytics",
   "permissions": [
@@ -103,7 +103,7 @@
   "web_accessible_resources": ["assets/*", "icons/*"],
   "browser_specific_settings": {
     "gecko": {
-      "id": "defnotpromo@profullstack.com",
+      "id": "defpromo@profullstack.com",
       "strict_min_version": "57.0"
     }
   }

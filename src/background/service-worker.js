@@ -1,17 +1,30 @@
-// Background service worker for DefNotPromo extension
+// Background service worker for DefPromo extension
 import { db } from '../storage/db.js';
 
-console.log('DefNotPromo background service worker loaded');
+console.log('DefPromo background service worker loaded');
 
 // Handle extension installation
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('Extension installed:', details.reason);
   
   if (details.reason === 'install') {
-    // Open side panel on first install
-    chrome.sidePanel.setOptions({
-      enabled: true,
+    // Set initial sidebar state
+    chrome.storage.local.set({
+      'defpromo-sidebar-state': false,
+      'defpromo-sidebar-width': 400,
     });
+  }
+});
+
+// Handle extension icon clicks
+chrome.action.onClicked.addListener(async (tab) => {
+  try {
+    // Send message to content script to toggle sidebar
+    await chrome.tabs.sendMessage(tab.id, {
+      type: 'TOGGLE_SIDEBAR',
+    });
+  } catch (error) {
+    console.error('Failed to toggle sidebar:', error);
   }
 });
 
@@ -21,10 +34,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   // Handle different message types
   switch (message.type) {
-    case 'OPEN_SIDE_PANEL':
-      handleOpenSidePanel(sender, sendResponse);
-      break;
-      
     case 'GET_CONTENT':
       handleGetContent(message, sendResponse);
       break;
@@ -40,19 +49,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   return true; // Keep message channel open for async response
 });
-
-/**
- * Open the side panel
- */
-const handleOpenSidePanel = async (sender, sendResponse) => {
-  try {
-    await chrome.sidePanel.open({ windowId: sender.tab.windowId });
-    sendResponse({ success: true });
-  } catch (error) {
-    console.error('Failed to open side panel:', error);
-    sendResponse({ success: false, error: error.message });
-  }
-};
 
 /**
  * Get content for auto-fill

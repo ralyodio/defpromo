@@ -1,15 +1,15 @@
 {
-  "name": "defnotpromo",
+  "name": "defpromo",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/post-build.js",
-    "build:chrome": "vite build && node scripts/post-build.js chrome",
-    "build:firefox": "vite build && node scripts/post-build.js firefox",
-    "build:safari": "vite build && node scripts/post-build.js safari",
-    "build:all": "pnpm build:chrome && pnpm build:firefox",
+    "build": "BROWSER=chrome vite build && node scripts/post-build.js",
+    "build:chrome": "BROWSER=chrome vite build && node scripts/post-build.js",
+    "build:firefox": "BROWSER=firefox vite build && node scripts/post-build.js",
+    "build:safari": "BROWSER=safari vite build && node scripts/post-build.js",
+    "build:all": "pnpm build:chrome && pnpm build:firefox && pnpm build:safari",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -19,16 +19,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ralyodio/defnotpromo.git"
+    "url": "git+https://github.com/ralyodio/defpromo.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "bugs": {
-    "url": "https://github.com/ralyodio/defnotpromo/issues"
+    "url": "https://github.com/ralyodio/defpromo/issues"
   },
-  "homepage": "https://github.com/ralyodio/defnotpromo#readme",
+  "homepage": "https://github.com/ralyodio/defpromo#readme",
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.16",
     "@testing-library/jest-dom": "^6.9.1",

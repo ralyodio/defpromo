@@ -1,7 +1,7 @@
 // Primal.net content script
 import { injectAutoFillButton, initContentScript, waitForDOM } from './shared.js';
 
-console.log('DefNotPromo: Primal.net content script loaded');
+console.log('DefPromo: Primal.net content script loaded');
 
 const PLATFORM = 'primal';
 
@@ -16,7 +16,7 @@ const checkForForms = () => {
   const replyBoxes = document.querySelectorAll('textarea[placeholder*="Reply"]');
   
   postBoxes.forEach((box) => {
-    if (!box.dataset.defnotpromoInjected) {
+    if (!box.dataset.defpromoInjected) {
       injectAutoFillButton(box, PLATFORM, 'post', (content) => {
         box.value = content;
         box.dispatchEvent(new Event('input', { bubbles: true }));
@@ -25,7 +25,7 @@ const checkForForms = () => {
   });
 
   replyBoxes.forEach((box) => {
-    if (!box.dataset.defnotpromoInjected) {
+    if (!box.dataset.defpromoInjected) {
       injectAutoFillButton(box, PLATFORM, 'comment', (content) => {
         box.value = content;
         box.dispatchEvent(new Event('input', { bubbles: true }));

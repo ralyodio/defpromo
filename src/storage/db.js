@@ -1,10 +1,10 @@
 import Dexie from 'dexie';
 
 /**
- * DefNotPromo Database
+ * DefPromo Database
  * IndexedDB database using Dexie.js for storing projects, content, and analytics
  */
-export const db = new Dexie('DefNotPromoDB');
+export const db = new Dexie('DefPromoDB');
 
 // Define database schema
 db.version(1).stores({

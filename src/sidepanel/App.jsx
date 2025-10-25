@@ -92,7 +92,7 @@ const App = () => {
   };
 
   if (initialLoading) {
-    return <Loading message="Loading DefNotPromo..." />;
+    return <Loading message="Loading DefPromo..." />;
   }
 
   return (
@@ -108,7 +108,7 @@ const App = () => {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">DefNotPromo</h1>
+          <h1 className="text-xl font-bold text-gray-900">DefPromo</h1>
           {activeProject && (
             <div className="text-sm text-gray-600">
               Project: <span className="font-medium">{activeProject.name}</span>

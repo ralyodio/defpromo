@@ -1,4 +1,4 @@
-# DefNotPromo
+# DefPromo
 
 AI-powered social media self-promotion assistant with comprehensive analytics and A/B testing capabilities.
 
@@ -10,7 +10,7 @@ AI-powered social media self-promotion assistant with comprehensive analytics an
 - 💾 **Data Portability**: Export/import all data as JSON for cross-browser/machine use
 - 🎯 **Multi-Project Management**: Manage multiple products simultaneously
 - 🌐 **Cross-Platform**: Supports 10 platforms - Twitter/X, LinkedIn, Reddit, Facebook, Stacker News, Bluesky, Primal.net, Slack, Discord, and Telegram
-- 📱 **Dual Interface**: Side panel for full features + popup for quick actions
+- 📱 **Cross-Browser Sidebar**: Content-script based sidebar works on all browsers without platform-specific APIs
 
 ## Installation
 
@@ -18,8 +18,8 @@ AI-powered social media self-promotion assistant with comprehensive analytics an
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/ralyodio/defnotpromo.git
-   cd defnotpromo
+   git clone https://github.com/ralyodio/defpromo.git
+   cd defpromo
    ```
 
 2. **Install dependencies**
@@ -29,39 +29,47 @@ AI-powered social media self-promotion assistant with comprehensive analytics an
 
 3. **Build the extension**
    ```bash
+   # Build for Chrome/Edge (default)
    pnpm build
+   # or
+   pnpm build:chrome
+   
+   # Build for Firefox
+   pnpm build:firefox
+   
+   # Build for Safari
+   pnpm build:safari
+   
+   # Build for all browsers
+   pnpm build:all
    ```
+   
+   **Note:** Each build automatically cleans its target directory before building, ensuring no stale code remains.
 
 ### Load in Chrome/Edge
 
-1. Open `chrome://extensions/` (or `edge://extensions/`)
-2. Enable "Developer mode" (toggle in top right)
-3. Click "Load unpacked"
-4. Select the `dist` folder from this project
+1. Build: `pnpm build:chrome`
+2. Open `chrome://extensions/` (or `edge://extensions/`)
+3. Enable "Developer mode" (toggle in top right)
+4. Click "Load unpacked"
+5. Select the `dist/chrome` folder
 
 ### Load in Firefox
 
-1. Build for Firefox: `pnpm build:firefox`
+1. Build: `pnpm build:firefox`
 2. Open `about:debugging#/runtime/this-firefox`
 3. Click "Load Temporary Add-on"
-4. Navigate to the `dist` folder and select `manifest.firefox.json` (NOT manifest.json)
-
-**Important:** Firefox requires the `manifest.firefox.json` file which uses `background.scripts` instead of `background.service_worker`. If you get an error about service_worker, make sure you're loading `manifest.firefox.json` and not `manifest.json`.
-
-**Troubleshooting:** If Firefox shows a cached error, try:
-- Remove the extension completely from about:debugging
-- Close and reopen Firefox
-- Rebuild with `pnpm build:firefox`
-- Load `manifest.firefox.json` again
+4. Navigate to `dist/firefox` and select `manifest.json`
 
 ### Load in Safari
 
 Safari supports web extensions but requires conversion using Xcode:
 
-1. Install Xcode from the Mac App Store
-2. Run the Safari Web Extension Converter:
+1. Build: `pnpm build:safari`
+2. Install Xcode from the Mac App Store
+3. Run the Safari Web Extension Converter:
    ```bash
-   xcrun safari-web-extension-converter dist/
+   xcrun safari-web-extension-converter dist/safari/
    ```
 3. Follow the prompts to create a Safari app project
 4. Open the generated Xcode project
@@ -76,8 +84,8 @@ See [Apple's documentation](https://developer.apple.com/documentation/safariserv
 
 ### Initial Setup
 
-1. Click the DefNotPromo extension icon in your browser toolbar
-2. Click "Open Side Panel" to access the full interface
+1. Click the DefPromo extension icon in your browser toolbar (or press `Ctrl+Shift+S` / `Cmd+Shift+S`)
+2. The sidebar will appear on the right side of the page
 3. Navigate to **Settings** tab
 4. Add your API keys:
    - **OpenAI API Key**: Required for AI content generation
@@ -110,7 +118,7 @@ The extension will automatically scrape your product page and use AI to extract 
 
 1. Visit any supported platform (Twitter/X, LinkedIn, Reddit, Facebook)
 2. Navigate to a post or comment form
-3. Look for the DefNotPromo auto-fill button near the form
+3. Look for the DefPromo auto-fill button near the form
 4. Click the button to insert your generated content
 5. The extension automatically tracks this submission in analytics
 
@@ -168,15 +176,20 @@ pnpm format
 ### Project Structure
 
 ```
-defnotpromo/
+defpromo/
 ├── src/
-│   ├── sidepanel/          # Main side panel interface
-│   │   ├── App.jsx         # Main app component
+│   ├── sidebar/            # Content-script sidebar (NEW)
+│   │   ├── index.html      # Sidebar HTML template
+│   │   └── index.jsx       # Sidebar entry point
+│   ├── sidepanel/          # Main app interface
+│   │   ├── App.jsx         # Main app component (reused by sidebar)
 │   │   ├── views/          # View components
 │   │   └── index.jsx       # Entry point
 │   ├── popup/              # Browser action popup
 │   ├── background/         # Background service worker
-│   ├── content/            # Content scripts per platform
+│   ├── content/            # Content scripts
+│   │   ├── sidebar-injector.js  # Sidebar injection logic (NEW)
+│   │   └── [platform].js   # Platform-specific scripts
 │   ├── storage/            # IndexedDB layer (Dexie.js)
 │   ├── services/           # API services (OpenAI, Scraper)
 │   ├── components/         # Shared React components
@@ -184,8 +197,12 @@ defnotpromo/
 ├── public/
 │   ├── manifest.json       # Extension manifest
 │   └── icons/              # Extension icons
+├── docs/
+│   └── SIDEBAR_ARCHITECTURE.md  # Sidebar implementation details
 └── dist/                   # Build output
 ```
+
+For detailed information about the sidebar architecture, see [`docs/SIDEBAR_ARCHITECTURE.md`](docs/SIDEBAR_ARCHITECTURE.md).
 
 ## Tech Stack
 
@@ -212,10 +229,19 @@ Choose one:
 
 ## Browser Compatibility
 
-- ✅ Chrome/Chromium (Manifest V3)
-- ✅ Edge (Manifest V3)
-- ✅ Firefox (with manifest adjustments)
-- ⚠️ Safari (requires conversion with Xcode)
+The extension now uses a **cross-browser content-script sidebar** instead of browser-specific APIs, providing 100% compatibility:
+
+- ✅ Chrome/Chromium (Manifest V3) - Full support
+- ✅ Edge (Manifest V3) - Full support
+- ✅ Firefox (Manifest V3) - Full support
+- ✅ Safari (with Xcode conversion) - Full support
+
+**Key Features:**
+- No platform-specific APIs (`sidePanel`, `sidebar_action`)
+- Shadow DOM for style isolation
+- Resizable sidebar (300-600px)
+- Keyboard shortcut: `Ctrl+Shift+S` (Windows/Linux) or `Cmd+Shift+S` (Mac)
+- State persistence across page navigations
 
 ## Privacy & Security
 

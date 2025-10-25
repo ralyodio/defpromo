@@ -1,5 +1,5 @@
 // Background script for Firefox (non-module version)
-console.log('DefNotPromo background script loaded (Firefox)');
+console.log('DefPromo background script loaded (Firefox)');
 
 // Handle extension installation
 chrome.runtime.onInstalled.addListener((details) => {

@@ -1,7 +1,7 @@
 // Slack web interface content script
 import { injectAutoFillButton, initContentScript, waitForDOM } from './shared.js';
 
-console.log('DefNotPromo: Slack content script loaded');
+console.log('DefPromo: Slack content script loaded');
 
 const PLATFORM = 'slack';
 
@@ -16,7 +16,7 @@ const checkForForms = () => {
   const threadBoxes = document.querySelectorAll('[data-qa="message_input"][aria-label*="reply"]');
   
   messageBoxes.forEach((box) => {
-    if (!box.dataset.defnotpromoInjected) {
+    if (!box.dataset.defpromoInjected) {
       injectAutoFillButton(box, PLATFORM, 'post', (content) => {
         box.textContent = content;
         box.dispatchEvent(new Event('input', { bubbles: true }));
@@ -25,7 +25,7 @@ const checkForForms = () => {
   });
 
   threadBoxes.forEach((box) => {
-    if (!box.dataset.defnotpromoInjected) {
+    if (!box.dataset.defpromoInjected) {
       injectAutoFillButton(box, PLATFORM, 'comment', (content) => {
         box.textContent = content;
         box.dispatchEvent(new Event('input', { bubbles: true }));

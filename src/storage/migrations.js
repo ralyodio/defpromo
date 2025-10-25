@@ -1,6 +1,6 @@
 /**
  * Database Migration Utilities
- * Handles schema updates and data migrations for DefNotPromo
+ * Handles schema updates and data migrations for DefPromo
  */
 
 import { db } from './db.js';
