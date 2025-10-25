@@ -131,24 +131,28 @@ const App = () => {
             Projects
           </button>
           <button
-            onClick={() => setCurrentView('content')}
+            onClick={() => activeProject && setCurrentView('content')}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               currentView === 'content'
                 ? 'bg-primary-50 text-primary-700 border-b-2 border-primary-600'
+                : !activeProject
+                ? 'text-gray-400 cursor-not-allowed'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
-            disabled={!activeProject}
+            title={!activeProject ? 'Please select a project first' : ''}
           >
             Content
           </button>
           <button
-            onClick={() => setCurrentView('analytics')}
+            onClick={() => activeProject && setCurrentView('analytics')}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               currentView === 'analytics'
                 ? 'bg-primary-50 text-primary-700 border-b-2 border-primary-600'
+                : !activeProject
+                ? 'text-gray-400 cursor-not-allowed'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
-            disabled={!activeProject}
+            title={!activeProject ? 'Please select a project first' : ''}
           >
             Analytics
           </button>

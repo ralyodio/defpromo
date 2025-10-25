@@ -23,11 +23,10 @@
     "https://web.telegram.org/*"
   ],
   "background": {
-    "scripts": ["background/background.js"],
-    "type": "module"
+    "service_worker": "background/background.js"
   },
   "action": {
-    "default_popup": "popup/index.html",
+    "default_popup": "src/popup/index.html",
     "default_icon": {
       "16": "icons/icon-16.svg",
       "32": "icons/icon-32.svg",
@@ -36,7 +35,7 @@
     }
   },
   "sidebar_action": {
-    "default_panel": "sidepanel/index.html",
+    "default_panel": "src/sidepanel/index.html",
     "default_icon": {
       "16": "icons/icon-16.svg",
       "32": "icons/icon-32.svg",

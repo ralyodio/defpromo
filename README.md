@@ -47,7 +47,21 @@ AI-powered social media self-promotion assistant with comprehensive analytics an
 
 ### Load in Safari
 
-Safari requires additional conversion steps using Xcode. See [Apple's documentation](https://developer.apple.com/documentation/safariservices/safari_web_extensions/converting_a_web_extension_for_safari) for details.
+Safari supports web extensions but requires conversion using Xcode:
+
+1. Install Xcode from the Mac App Store
+2. Run the Safari Web Extension Converter:
+   ```bash
+   xcrun safari-web-extension-converter dist/
+   ```
+3. Follow the prompts to create a Safari app project
+4. Open the generated Xcode project
+5. Build and run the project
+6. Enable the extension in Safari preferences
+
+See [Apple's documentation](https://developer.apple.com/documentation/safariservices/safari_web_extensions/converting_a_web_extension_for_safari) for detailed instructions.
+
+**Note:** Safari conversion creates a native macOS/iOS app wrapper around the web extension. The extension code remains the same, but distribution requires the App Store or developer signing.
 
 ## Usage
 
