@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../storage/db';
+import ErrorBoundary from '../components/ErrorBoundary';
+import Toast from '../components/Toast';
+import Loading from '../components/Loading';
 
 // Import views
 import ProjectsView from './views/ProjectsView';
@@ -11,6 +14,8 @@ const App = () => {
   const [currentView, setCurrentView] = useState('projects');
   const [activeProject, setActiveProject] = useState(null);
   const [projects, setProjects] = useState([]);
+  const [toast, setToast] = useState(null);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     loadProjects();
@@ -31,7 +36,14 @@ const App = () => {
       }
     } catch (error) {
       console.error('Failed to load projects:', error);
+      showToast('Failed to load projects', 'error');
+    } finally {
+      setInitialLoading(false);
     }
+  };
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type });
   };
 
   const handleProjectChange = async (projectId) => {
@@ -79,8 +91,20 @@ const App = () => {
     }
   };
 
+  if (initialLoading) {
+    return <Loading message="Loading DefNotPromo..." />;
+  }
+
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <ErrorBoundary>
+      <div className="flex flex-col h-screen bg-gray-50">
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between">
@@ -145,7 +169,8 @@ const App = () => {
       <main className="flex-1 overflow-auto">
         {renderView()}
       </main>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 
