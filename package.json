@@ -1,0 +1,50 @@
+{
+  "name": "defnotpromo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src --ext js,jsx",
+    "format": "prettier --write \"src/**/*.{js,jsx,css}\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ralyodio/defnotpromo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/ralyodio/defnotpromo/issues"
+  },
+  "homepage": "https://github.com/ralyodio/defnotpromo#readme",
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "@vitest/ui": "^4.0.3",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^10.1.8",
+    "fake-indexeddb": "^6.2.4",
+    "jsdom": "^27.0.1",
+    "postcss": "^8.5.6",
+    "prettier": "^3.6.2",
+    "tailwindcss": "^4.1.16",
+    "vite": "^7.1.12",
+    "vitest": "^4.0.3"
+  },
+  "dependencies": {
+    "dexie": "^4.2.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "recharts": "^3.3.0"
+  }
+}
