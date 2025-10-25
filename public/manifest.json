@@ -14,7 +14,14 @@
     "https://x.com/*",
     "https://www.linkedin.com/*",
     "https://www.reddit.com/*",
-    "https://www.facebook.com/*"
+    "https://www.facebook.com/*",
+    "https://stacker.news/*",
+    "https://bsky.app/*",
+    "https://*.bsky.social/*",
+    "https://primal.net/*",
+    "https://*.slack.com/*",
+    "https://discord.com/*",
+    "https://web.telegram.org/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js",
@@ -57,6 +64,36 @@
     {
       "matches": ["https://www.facebook.com/*"],
       "js": ["content/content-facebook.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://stacker.news/*"],
+      "js": ["content/content-stacker.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://bsky.app/*", "https://*.bsky.social/*"],
+      "js": ["content/content-bluesky.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://primal.net/*"],
+      "js": ["content/content-primal.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.slack.com/*"],
+      "js": ["content/content-slack.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://discord.com/*"],
+      "js": ["content/content-discord.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://web.telegram.org/*"],
+      "js": ["content/content-telegram.js"],
       "run_at": "document_idle"
     }
   ],

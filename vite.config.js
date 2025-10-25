@@ -35,6 +35,12 @@ export default defineConfig({
         'content-linkedin': resolve(__dirname, 'src/content/linkedin.js'),
         'content-reddit': resolve(__dirname, 'src/content/reddit.js'),
         'content-facebook': resolve(__dirname, 'src/content/facebook.js'),
+        'content-stacker': resolve(__dirname, 'src/content/stacker.js'),
+        'content-bluesky': resolve(__dirname, 'src/content/bluesky.js'),
+        'content-primal': resolve(__dirname, 'src/content/primal.js'),
+        'content-slack': resolve(__dirname, 'src/content/slack.js'),
+        'content-discord': resolve(__dirname, 'src/content/discord.js'),
+        'content-telegram': resolve(__dirname, 'src/content/telegram.js'),
       },
       output: {
         entryFileNames: (chunkInfo) => {

@@ -9,7 +9,7 @@ AI-powered social media self-promotion assistant with comprehensive analytics an
 - 🔄 **A/B Testing**: Compare content variation performance
 - 💾 **Data Portability**: Export/import all data as JSON for cross-browser/machine use
 - 🎯 **Multi-Project Management**: Manage multiple products simultaneously
-- 🌐 **Cross-Platform**: Supports Twitter/X, LinkedIn, Reddit, and Facebook
+- 🌐 **Cross-Platform**: Supports 10 platforms - Twitter/X, LinkedIn, Reddit, Facebook, Stacker News, Bluesky, Primal.net, Slack, Discord, and Telegram
 - 📱 **Dual Interface**: Side panel for full features + popup for quick actions
 
 ## Installation
