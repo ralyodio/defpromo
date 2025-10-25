@@ -41,9 +41,18 @@ AI-powered social media self-promotion assistant with comprehensive analytics an
 
 ### Load in Firefox
 
-1. Open `about:debugging#/runtime/this-firefox`
-2. Click "Load Temporary Add-on"
-3. Navigate to the `dist` folder and select `manifest.json`
+1. Build for Firefox: `pnpm build:firefox`
+2. Open `about:debugging#/runtime/this-firefox`
+3. Click "Load Temporary Add-on"
+4. Navigate to the `dist` folder and select `manifest.firefox.json` (NOT manifest.json)
+
+**Important:** Firefox requires the `manifest.firefox.json` file which uses `background.scripts` instead of `background.service_worker`. If you get an error about service_worker, make sure you're loading `manifest.firefox.json` and not `manifest.json`.
+
+**Troubleshooting:** If Firefox shows a cached error, try:
+- Remove the extension completely from about:debugging
+- Close and reopen Firefox
+- Rebuild with `pnpm build:firefox`
+- Load `manifest.firefox.json` again
 
 ### Load in Safari
 

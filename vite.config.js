@@ -31,6 +31,7 @@ export default defineConfig({
         sidepanel: resolve(__dirname, 'src/sidepanel/index.html'),
         popup: resolve(__dirname, 'src/popup/index.html'),
         background: resolve(__dirname, 'src/background/service-worker.js'),
+        'background-firefox': resolve(__dirname, 'src/background/background-firefox.js'),
         'content-twitter': resolve(__dirname, 'src/content/twitter.js'),
         'content-linkedin': resolve(__dirname, 'src/content/linkedin.js'),
         'content-reddit': resolve(__dirname, 'src/content/reddit.js'),
@@ -47,7 +48,7 @@ export default defineConfig({
           if (chunkInfo.name.startsWith('content-')) {
             return 'content/[name].js';
           }
-          if (chunkInfo.name === 'background') {
+          if (chunkInfo.name === 'background' || chunkInfo.name === 'background-firefox') {
             return 'background/[name].js';
           }
           return '[name]/[name].js';

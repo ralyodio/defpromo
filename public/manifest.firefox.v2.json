@@ -1,14 +1,12 @@
 {
-  "manifest_version": 3,
+  "manifest_version": 2,
   "name": "DefNotPromo",
   "version": "1.0.0",
   "description": "AI-powered social media self-promotion assistant with analytics",
   "permissions": [
     "storage",
     "activeTab",
-    "scripting"
-  ],
-  "host_permissions": [
+    "tabs",
     "https://twitter.com/*",
     "https://x.com/*",
     "https://www.linkedin.com/*",
@@ -23,9 +21,9 @@
     "https://web.telegram.org/*"
   ],
   "background": {
-    "service_worker": "background/background-firefox.js"
+    "scripts": ["background/background.js"]
   },
-  "action": {
+  "browser_action": {
     "default_popup": "src/popup/index.html",
     "default_icon": {
       "16": "icons/icon-16.svg",
@@ -101,16 +99,11 @@
       "run_at": "document_idle"
     }
   ],
-  "web_accessible_resources": [
-    {
-      "resources": ["assets/*", "icons/*"],
-      "matches": ["<all_urls>"]
-    }
-  ],
+  "web_accessible_resources": ["assets/*", "icons/*"],
   "browser_specific_settings": {
     "gecko": {
       "id": "defnotpromo@profullstack.com",
-      "strict_min_version": "109.0"
+      "strict_min_version": "57.0"
     }
   }
 }
