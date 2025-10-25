@@ -1,5 +1,37 @@
 // Primal.net content script
+import { injectAutoFillButton, initContentScript, waitForDOM } from './shared.js';
+
 console.log('DefNotPromo: Primal.net content script loaded');
 
-// TODO: Implement Primal.net-specific form detection and auto-fill functionality
-// Primal is a Nostr client
+const PLATFORM = 'primal';
+
+const init = () => {
+  console.log('Initializing Primal.net content script');
+  initContentScript(checkForForms);
+};
+
+const checkForForms = () => {
+  // Primal uses textarea for Nostr posts
+  const postBoxes = document.querySelectorAll('textarea[placeholder*="What\'s on your mind"]');
+  const replyBoxes = document.querySelectorAll('textarea[placeholder*="Reply"]');
+  
+  postBoxes.forEach((box) => {
+    if (!box.dataset.defnotpromoInjected) {
+      injectAutoFillButton(box, PLATFORM, 'post', (content) => {
+        box.value = content;
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+  });
+
+  replyBoxes.forEach((box) => {
+    if (!box.dataset.defnotpromoInjected) {
+      injectAutoFillButton(box, PLATFORM, 'comment', (content) => {
+        box.value = content;
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+  });
+};
+
+waitForDOM(init);

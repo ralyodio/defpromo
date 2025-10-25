@@ -1,5 +1,27 @@
 // Telegram web interface content script
+import { injectAutoFillButton, initContentScript, waitForDOM } from './shared.js';
+
 console.log('DefNotPromo: Telegram content script loaded');
 
-// TODO: Implement Telegram-specific form detection and auto-fill functionality
-// Telegram web interface (web.telegram.org)
+const PLATFORM = 'telegram';
+
+const init = () => {
+  console.log('Initializing Telegram content script');
+  initContentScript(checkForForms);
+};
+
+const checkForForms = () => {
+  // Telegram message input
+  const messageBoxes = document.querySelectorAll('[contenteditable="true"].input-message-input');
+  
+  messageBoxes.forEach((box) => {
+    if (!box.dataset.defnotpromoInjected) {
+      injectAutoFillButton(box, PLATFORM, 'post', (content) => {
+        box.textContent = content;
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+  });
+};
+
+waitForDOM(init);

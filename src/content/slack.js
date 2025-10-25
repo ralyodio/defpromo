@@ -1,5 +1,37 @@
 // Slack web interface content script
-console.log("DefNotPromo: Slack content script loaded");
+import { injectAutoFillButton, initContentScript, waitForDOM } from './shared.js';
 
-// TODO: Implement Slack-specific form detection and auto-fill functionality
-// Slack web interface for workspace messaging
+console.log('DefNotPromo: Slack content script loaded');
+
+const PLATFORM = 'slack';
+
+const init = () => {
+  console.log('Initializing Slack content script');
+  initContentScript(checkForForms);
+};
+
+const checkForForms = () => {
+  // Slack message composer
+  const messageBoxes = document.querySelectorAll('[data-qa="message_input"]');
+  const threadBoxes = document.querySelectorAll('[data-qa="message_input"][aria-label*="reply"]');
+  
+  messageBoxes.forEach((box) => {
+    if (!box.dataset.defnotpromoInjected) {
+      injectAutoFillButton(box, PLATFORM, 'post', (content) => {
+        box.textContent = content;
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+  });
+
+  threadBoxes.forEach((box) => {
+    if (!box.dataset.defnotpromoInjected) {
+      injectAutoFillButton(box, PLATFORM, 'comment', (content) => {
+        box.textContent = content;
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+  });
+};
+
+waitForDOM(init);

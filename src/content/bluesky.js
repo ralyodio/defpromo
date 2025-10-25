@@ -1,5 +1,37 @@
 // Bluesky content script
+import { injectAutoFillButton, initContentScript, waitForDOM } from './shared.js';
+
 console.log('DefNotPromo: Bluesky content script loaded');
 
-// TODO: Implement Bluesky-specific form detection and auto-fill functionality
-// Bluesky is a decentralized social network
+const PLATFORM = 'bluesky';
+
+const init = () => {
+  console.log('Initializing Bluesky content script');
+  initContentScript(checkForForms);
+};
+
+const checkForForms = () => {
+  // Bluesky uses contenteditable divs
+  const postBoxes = document.querySelectorAll('[contenteditable="true"][data-testid="composerTextInput"]');
+  const replyBoxes = document.querySelectorAll('[contenteditable="true"][placeholder*="Write your reply"]');
+  
+  postBoxes.forEach((box) => {
+    if (!box.dataset.defnotpromoInjected) {
+      injectAutoFillButton(box, PLATFORM, 'post', (content) => {
+        box.textContent = content;
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+  });
+
+  replyBoxes.forEach((box) => {
+    if (!box.dataset.defnotpromoInjected) {
+      injectAutoFillButton(box, PLATFORM, 'comment', (content) => {
+        box.textContent = content;
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+  });
+};
+
+waitForDOM(init);
