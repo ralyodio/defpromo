@@ -7,10 +7,14 @@ const Popup = () => {
     return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   };
 
+  const isFirefox = () => {
+    return typeof InstallTrigger !== 'undefined' || navigator.userAgent.toLowerCase().includes('firefox');
+  };
+
   const openSidePanel = async () => {
     try {
-      if (isSafari()) {
-        // Safari: Open sidepanel in new tab
+      if (isSafari() || isFirefox()) {
+        // Safari & Firefox: Open sidepanel in new tab
         chrome.tabs.create({
           url: chrome.runtime.getURL('src/sidepanel/index.html')
         });
@@ -21,16 +25,18 @@ const Popup = () => {
         await chrome.sidePanel.open({ windowId: currentWindow.id });
         window.close();
       } else {
-        // Firefox or browsers without sidePanel - send message to background
-        chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' }, (response) => {
-          if (response?.success) {
-            window.close();
-          }
+        // Fallback: open in new tab
+        chrome.tabs.create({
+          url: chrome.runtime.getURL('src/sidepanel/index.html')
         });
+        window.close();
       }
     } catch (error) {
       console.error('Failed to open side panel:', error);
-      // Don't show alert, just log - the side panel might have opened anyway
+      // Fallback on error
+      chrome.tabs.create({
+        url: chrome.runtime.getURL('src/sidepanel/index.html')
+      });
     }
   };
 
