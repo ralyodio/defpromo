@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/post-build.js",
+    "build:chrome": "vite build && node scripts/post-build.js chrome",
+    "build:firefox": "vite build && node scripts/post-build.js firefox",
+    "build:all": "pnpm build:chrome && pnpm build:firefox",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",

@@ -1,0 +1,117 @@
+{
+  "manifest_version": 3,
+  "name": "DefNotPromo",
+  "version": "1.0.0",
+  "description": "AI-powered social media self-promotion assistant with analytics",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://twitter.com/*",
+    "https://x.com/*",
+    "https://www.linkedin.com/*",
+    "https://www.reddit.com/*",
+    "https://www.facebook.com/*",
+    "https://stacker.news/*",
+    "https://bsky.app/*",
+    "https://*.bsky.social/*",
+    "https://primal.net/*",
+    "https://*.slack.com/*",
+    "https://discord.com/*",
+    "https://web.telegram.org/*"
+  ],
+  "background": {
+    "scripts": ["background/background.js"],
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_icon": {
+      "16": "icons/icon-16.svg",
+      "32": "icons/icon-32.svg",
+      "48": "icons/icon-48.svg",
+      "128": "icons/icon-128.svg"
+    }
+  },
+  "sidebar_action": {
+    "default_panel": "sidepanel/index.html",
+    "default_icon": {
+      "16": "icons/icon-16.svg",
+      "32": "icons/icon-32.svg",
+      "48": "icons/icon-48.svg",
+      "128": "icons/icon-128.svg"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.svg",
+    "32": "icons/icon-32.svg",
+    "48": "icons/icon-48.svg",
+    "128": "icons/icon-128.svg"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://twitter.com/*", "https://x.com/*"],
+      "js": ["content/content-twitter.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.linkedin.com/*"],
+      "js": ["content/content-linkedin.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.reddit.com/*"],
+      "js": ["content/content-reddit.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.facebook.com/*"],
+      "js": ["content/content-facebook.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://stacker.news/*"],
+      "js": ["content/content-stacker.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://bsky.app/*", "https://*.bsky.social/*"],
+      "js": ["content/content-bluesky.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://primal.net/*"],
+      "js": ["content/content-primal.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.slack.com/*"],
+      "js": ["content/content-slack.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://discord.com/*"],
+      "js": ["content/content-discord.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://web.telegram.org/*"],
+      "js": ["content/content-telegram.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*", "icons/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "defnotpromo@profullstack.com",
+      "strict_min_version": "109.0"
+    }
+  }
+}
