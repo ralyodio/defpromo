@@ -3,13 +3,21 @@ import { createRoot } from 'react-dom/client';
 import '../styles/global.css';
 
 const Popup = () => {
+  const isSafari = () => {
+    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  };
+
   const openSidePanel = async () => {
     try {
-      // Get current window ID
-      const currentWindow = await chrome.windows.getCurrent();
-      
-      if (chrome.sidePanel && chrome.sidePanel.open) {
+      if (isSafari()) {
+        // Safari: Open sidepanel in new tab
+        chrome.tabs.create({
+          url: chrome.runtime.getURL('src/sidepanel/index.html')
+        });
+        window.close();
+      } else if (chrome.sidePanel && chrome.sidePanel.open) {
         // Chrome/Edge with sidePanel API
+        const currentWindow = await chrome.windows.getCurrent();
         await chrome.sidePanel.open({ windowId: currentWindow.id });
         window.close();
       } else {

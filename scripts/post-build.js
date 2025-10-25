@@ -12,16 +12,26 @@ const distDir = 'dist';
 // Copy Firefox manifest if building for Firefox
 if (browser === 'firefox') {
   console.log('Copying Firefox-specific manifest...');
-  if (existsSync('public/manifest.firefox.v2.json')) {
-    copyFileSync('public/manifest.firefox.v2.json', join(distDir, 'manifest.firefox.json'));
-    console.log('✓ Firefox Manifest copied to dist/manifest.firefox.json');
+  if (existsSync('public/manifest.firefox.json')) {
+    // Replace manifest.json with Firefox version
+    copyFileSync('public/manifest.firefox.json', join(distDir, 'manifest.json'));
+    console.log('✓ Firefox manifest copied to dist/manifest.json');
+    
+    // Also keep a copy as manifest.firefox.json
+    copyFileSync('public/manifest.firefox.json', join(distDir, 'manifest.firefox.json'));
+    console.log('✓ Firefox manifest copied to dist/manifest.firefox.json');
   }
-  
-  // Remove the v2 file if it was copied by Vite
-  const v2Path = join(distDir, 'manifest.firefox.v2.json');
-  if (existsSync(v2Path)) {
-    unlinkSync(v2Path);
-    console.log('✓ Removed dist/manifest.firefox.v2.json');
+}
+
+// Copy Safari manifest if building for Safari
+if (browser === 'safari') {
+  console.log('Copying Safari-specific manifest...');
+  if (existsSync('public/manifest.safari.json')) {
+    copyFileSync('public/manifest.safari.json', join(distDir, 'manifest.json'));
+    console.log('✓ Safari manifest copied to dist/manifest.json');
+    
+    copyFileSync('public/manifest.safari.json', join(distDir, 'manifest.safari.json'));
+    console.log('✓ Safari manifest copied to dist/manifest.safari.json');
   }
 }
 
@@ -33,8 +43,15 @@ if (browser === 'firefox') {
   console.log('To test in Firefox:');
   console.log('1. Go to about:debugging#/runtime/this-firefox');
   console.log('2. Click "Load Temporary Add-on"');
-  console.log(`3. Select ${distDir}/manifest.firefox.json`);
-  console.log('\nNote: Firefox does not yet support Manifest V3');
+  console.log(`3. Select ANY manifest file in ${distDir}/ folder`);
+  console.log('\n⚠️  NOTE: dist/manifest.json is now Manifest V2 for Firefox');
+  console.log('⚠️  To use Chrome again, rebuild with: pnpm build or pnpm build:chrome');
+} else if (browser === 'safari') {
+  console.log('\n📦 Safari Build Ready!');
+  console.log('To build Safari app:');
+  console.log('1. Run: xcrun safari-web-extension-converter dist/');
+  console.log('2. Open generated Xcode project');
+  console.log('3. Build and run');
 } else {
   console.log('\n📦 Chrome/Edge Build Ready!');
   console.log('To test in Chrome/Edge:');
