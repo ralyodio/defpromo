@@ -5,61 +5,9 @@ import { generateContent } from '../../services/openai';
 
 const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpdate }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    url: '',
-    description: '',
-  });
+  const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
-  const [scraping, setScraping] = useState(false);
   const [error, setError] = useState(null);
-  const [scrapedData, setScrapedData] = useState(null);
-
-  const handleScrapeUrl = async () => {
-    if (!formData.url) {
-      setError('Please enter a URL first');
-      return;
-    }
-
-    setScraping(true);
-    setError(null);
-
-    try {
-      const settings = await db.settings.get('main');
-      if (!settings?.scraperKey) {
-        setError('Please configure your scraper API key in Settings');
-        return;
-      }
-
-      // Scrape the URL
-      const extracted = await scrapeAndExtract({
-        url: formData.url,
-        apiKey: settings.scraperKey,
-        service: settings.scraperService || 'scrapingbee',
-      });
-
-      setScrapedData(extracted);
-
-      // Auto-fill form with scraped data
-      if (extracted.title && !formData.name) {
-        setFormData((prev) => ({
-          ...prev,
-          name: extracted.title,
-        }));
-      }
-
-      if (extracted.description && !formData.description) {
-        setFormData((prev) => ({
-          ...prev,
-          description: extracted.description,
-        }));
-      }
-    } catch (err) {
-      setError(`Scraping failed: ${err.message}`);
-    } finally {
-      setScraping(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -67,11 +15,27 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
     setError(null);
 
     try {
+      // Get Browserless API key from settings
+      const settings = await db.settings.get('main');
+      if (!settings?.scraperKey) {
+        setError('Please configure your Browserless API key in Settings');
+        setLoading(false);
+        return;
+      }
+
+      // Scrape the URL using Browserless to get metadata
+      const extracted = await scrapeAndExtract({
+        url,
+        apiKey: settings.scraperKey,
+        service: 'browserless',
+      });
+
+      // Create project with auto-generated metadata
       const newProject = {
         id: `proj-${Date.now()}`,
-        name: formData.name,
-        url: formData.url,
-        description: formData.description || scrapedData?.description || '',
+        name: extracted.title || new URL(url).hostname,
+        url,
+        description: extracted.description || extracted.text.substring(0, 200) || '',
         targetAudience: '',
         keyFeatures: [],
         tone: 'professional',
@@ -82,11 +46,10 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
       await db.projects.add(newProject);
       await onProjectsUpdate();
       
-      setFormData({ name: '', url: '', description: '' });
-      setScrapedData(null);
+      setUrl('');
       setShowCreateForm(false);
     } catch (err) {
-      setError(err.message);
+      setError(`Failed to create project: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -126,40 +89,23 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
       {showCreateForm && (
         <div className="card mb-6">
           <h3 className="text-lg font-semibold mb-4">Create New Project</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Enter your product URL and we'll automatically extract the name and description using Browserless.
+          </p>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="label">Project Name</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="input"
-                placeholder="My Awesome Product"
-                required
-              />
-            </div>
-
             <div>
               <label className="label">Product URL</label>
               <input
                 type="url"
-                value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
                 className="input"
                 placeholder="https://example.com"
                 required
               />
-            </div>
-
-            <div>
-              <label className="label">Description (Optional)</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="input"
-                rows="3"
-                placeholder="Brief description of your product..."
-              />
+              <p className="text-xs text-gray-500 mt-1">
+                We'll scrape this URL to automatically generate project details
+              </p>
             </div>
 
             <div className="flex gap-2">
@@ -168,12 +114,17 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
                 disabled={loading}
                 className="btn btn-primary"
               >
-                {loading ? 'Creating...' : 'Create Project'}
+                {loading ? 'Creating Project...' : 'Create Project'}
               </button>
               <button
                 type="button"
-                onClick={() => setShowCreateForm(false)}
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setUrl('');
+                  setError(null);
+                }}
                 className="btn btn-secondary"
+                disabled={loading}
               >
                 Cancel
               </button>
