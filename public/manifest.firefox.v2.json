@@ -21,7 +21,7 @@
     "https://web.telegram.org/*"
   ],
   "background": {
-    "scripts": ["background/background.js"],
+    "scripts": ["background/background-firefox.js"],
     "persistent": false
   },
   "browser_action": {
