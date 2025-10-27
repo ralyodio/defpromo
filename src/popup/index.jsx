@@ -13,11 +13,29 @@ const Popup = () => {
 
   const openSidePanel = async () => {
     try {
-      if (isSafari() || isFirefox()) {
-        // Safari & Firefox: Open sidepanel in new tab
-        chrome.tabs.create({
-          url: chrome.runtime.getURL('src/sidepanel/index.html')
-        });
+      if (isSafari()) {
+        // Safari: Inject sidebar into current page
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.id) {
+          try {
+            await chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_SIDEBAR' });
+            window.close();
+          } catch (error) {
+            // Fallback to new tab if content script not loaded
+            console.error('Content script not available, opening in new tab:', error);
+            chrome.tabs.create({
+              url: chrome.runtime.getURL('src/sidepanel/index.html')
+            });
+            window.close();
+          }
+        }
+      } else if (isFirefox()) {
+        // Firefox: Use native sidebar API
+        if (browser && browser.sidebarAction && browser.sidebarAction.open) {
+          await browser.sidebarAction.open();
+        } else if (chrome.sidebarAction && chrome.sidebarAction.open) {
+          await chrome.sidebarAction.open();
+        }
         window.close();
       } else if (chrome.sidePanel && chrome.sidePanel.open) {
         // Chrome/Edge with sidePanel API
