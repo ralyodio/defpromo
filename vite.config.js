@@ -4,6 +4,7 @@ import { resolve } from 'path';
 import { copyFileSync, mkdirSync, readdirSync } from 'fs';
 
 export default defineConfig({
+  publicDir: false, // Disable automatic public directory copying
   plugins: [
     react(),
     {

@@ -51,6 +51,12 @@
   },
   "content_scripts": [
     {
+      "matches": ["<all_urls>"],
+      "js": ["content/content-sidebar-injector.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
+    {
       "matches": ["https://twitter.com/*", "https://x.com/*"],
       "js": ["content/content-twitter.js"],
       "run_at": "document_idle"
@@ -101,7 +107,7 @@
       "run_at": "document_idle"
     }
   ],
-  "web_accessible_resources": ["assets/*", "icons/*"],
+  "web_accessible_resources": ["assets/*", "icons/*", "src/sidebar/*"],
   "browser_specific_settings": {
     "gecko": {
       "id": "defpromo@profullstack.com",

@@ -11,18 +11,7 @@
     "tabs"
   ],
   "host_permissions": [
-    "https://twitter.com/*",
-    "https://x.com/*",
-    "https://www.linkedin.com/*",
-    "https://www.reddit.com/*",
-    "https://www.facebook.com/*",
-    "https://stacker.news/*",
-    "https://bsky.app/*",
-    "https://*.bsky.social/*",
-    "https://primal.net/*",
-    "https://*.slack.com/*",
-    "https://discord.com/*",
-    "https://web.telegram.org/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background/service-worker.js"
@@ -43,6 +32,12 @@
     "128": "icons/icon-128.png"
   },
   "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/content-sidebar-injector.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
     {
       "matches": ["https://twitter.com/*", "https://x.com/*"],
       "js": ["content/content-twitter.js"],
@@ -96,7 +91,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["assets/*", "icons/*", "src/sidepanel/*"],
+      "resources": ["assets/*", "icons/*", "src/sidebar/*", "src/sidepanel/*"],
       "matches": ["<all_urls>"]
     }
   ]
