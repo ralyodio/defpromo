@@ -309,3 +309,313 @@ Return ONLY valid JSON, no markdown or explanation.`;
     throw error;
   }
 };
+
+/**
+ * Suggest relevant subreddits for a product/project
+ * @param {Object} params - Parameters
+ * @param {string} params.apiKey - OpenAI API key
+ * @param {string} params.productName - Product name
+ * @param {string} params.description - Product description
+ * @param {string} params.targetAudience - Target audience
+ * @param {string[]} params.keyFeatures - Key features
+ * @param {string} params.keywords - Additional keywords for targeting (optional)
+ * @returns {Promise<string[]>} Array of subreddit names (without r/ prefix)
+ */
+export const suggestSubreddits = async ({
+  apiKey,
+  productName,
+  description,
+  targetAudience,
+  keyFeatures,
+  keywords,
+}) => {
+  if (!apiKey) {
+    throw new Error('OpenAI API key is required');
+  }
+
+  const prompt = `Based on this product, suggest the top 10 most relevant subreddits where the target audience would be active and receptive to helpful, non-spammy engagement.
+
+Product: ${productName}
+Description: ${description}
+Target Audience: ${targetAudience || 'General'}
+Key Features: ${keyFeatures?.join(', ') || 'N/A'}
+${keywords ? `Additional Keywords: ${keywords}` : ''}
+
+Return ONLY a JSON array of subreddit names (without the r/ prefix), ordered by relevance. Example: ["entrepreneur", "startups", "SaaS"]
+
+Focus on subreddits that:
+1. Have active communities
+2. Allow self-promotion in comments (when providing value)
+3. Match the target audience and keywords
+4. Are receptive to helpful product mentions
+5. Are specific and niche (not too generic)`;
+
+  try {
+    const response = await fetch(OPENAI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: DEFAULT_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a Reddit marketing expert. Suggest relevant subreddits for products. Always return valid JSON arrays.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 300,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content || '';
+
+    if (!content) {
+      return [];
+    }
+
+    console.log('Raw subreddit response:', content);
+
+    // Try to parse as JSON first
+    try {
+      const subreddits = JSON.parse(content);
+      if (Array.isArray(subreddits)) {
+        return subreddits.slice(0, 10);
+      }
+    } catch (parseError) {
+      console.log('Not JSON, trying text parsing');
+    }
+
+    // Fallback: Parse as text (comma-separated, line-separated, or with r/ prefix)
+    const subreddits = content
+      .split(/[,\n]+/)
+      .map(s => s.trim())
+      .map(s => s.replace(/^r\//, '')) // Remove r/ prefix if present
+      .map(s => s.replace(/[^\w-]/g, '')) // Remove any non-alphanumeric except hyphens
+      .filter(s => s.length > 0)
+      .slice(0, 10);
+
+    console.log('Parsed subreddits:', subreddits);
+    return subreddits;
+  } catch (error) {
+    console.error('Subreddit suggestion error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Suggest relevant hashtags for social media platforms
+ * @param {Object} params - Parameters
+ * @param {string} params.apiKey - OpenAI API key
+ * @param {string} params.productName - Product name
+ * @param {string} params.description - Product description
+ * @param {string} params.targetAudience - Target audience
+ * @param {string[]} params.keyFeatures - Key features
+ * @param {string} params.keywords - Additional keywords (optional)
+ * @returns {Promise<string[]>} Array of hashtags (without # prefix)
+ */
+export const suggestHashtags = async ({
+  apiKey,
+  productName,
+  description,
+  targetAudience,
+  keyFeatures,
+  keywords,
+}) => {
+  if (!apiKey) {
+    throw new Error('OpenAI API key is required');
+  }
+
+  const prompt = `Based on this product, suggest the top 10 most relevant hashtags for social media platforms (Twitter/X, Bluesky, Primal).
+
+Product: ${productName}
+Description: ${description}
+Target Audience: ${targetAudience || 'General'}
+Key Features: ${keyFeatures?.join(', ') || 'N/A'}
+${keywords ? `Additional Keywords: ${keywords}` : ''}
+
+Return ONLY a JSON array of hashtag strings (without the # prefix), ordered by relevance. Example: ["SaaS", "ProductHunt", "IndieHackers"]
+
+Focus on hashtags that:
+1. Are actively used and searched
+2. Match the product niche
+3. Attract the target audience
+4. Are specific enough to be useful (not too generic like #tech)
+5. Mix popular and niche tags`;
+
+  try {
+    const response = await fetch(OPENAI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: DEFAULT_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a social media marketing expert. Suggest relevant hashtags for products. Always return valid JSON arrays.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 300,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content || '';
+
+    if (!content) {
+      return [];
+    }
+
+    console.log('Raw hashtag response:', content);
+
+    // Try to parse as JSON first
+    try {
+      const hashtags = JSON.parse(content);
+      if (Array.isArray(hashtags)) {
+        return hashtags.slice(0, 10);
+      }
+    } catch (parseError) {
+      console.log('Not JSON, trying text parsing');
+    }
+
+    // Fallback: Parse as text
+    const hashtags = content
+      .split(/[,\n]+/)
+      .map(h => h.trim())
+      .map(h => h.replace(/^#/, '')) // Remove # prefix if present
+      .map(h => h.replace(/[^\w]/g, '')) // Remove any non-alphanumeric
+      .filter(h => h.length > 0)
+      .slice(0, 10);
+
+    console.log('Parsed hashtags:', hashtags);
+    return hashtags;
+  } catch (error) {
+    console.error('Hashtag suggestion error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Suggest both subreddits and hashtags in a single API call
+ * @param {Object} params - Parameters
+ * @returns {Promise<{subreddits: string[], hashtags: string[]}>}
+ */
+export const suggestSubredditsAndHashtags = async ({
+  apiKey,
+  productName,
+  description,
+  targetAudience,
+  keyFeatures,
+  keywords,
+}) => {
+  if (!apiKey) {
+    throw new Error('OpenAI API key is required');
+  }
+
+  const prompt = `Based on this product, suggest:
+1. Top 10 relevant subreddits for engagement
+2. Top 10 relevant hashtags for social media
+
+Product: ${productName}
+Description: ${description}
+Target Audience: ${targetAudience || 'General'}
+Key Features: ${keyFeatures?.join(', ') || 'N/A'}
+${keywords ? `Additional Keywords: ${keywords}` : ''}
+
+Return ONLY a JSON object with this exact structure:
+{
+  "subreddits": ["subreddit1", "subreddit2", ...],
+  "hashtags": ["hashtag1", "hashtag2", ...]
+}
+
+Subreddits should:
+- Have active communities
+- Allow helpful engagement
+- Match the niche
+- Be specific (not too generic)
+
+Hashtags should:
+- Be actively searched
+- Match the product niche
+- Mix popular and niche tags
+- Be specific enough to be useful`;
+
+  try {
+    const response = await fetch(OPENAI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: DEFAULT_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a social media marketing expert. Suggest relevant subreddits and hashtags. Always return valid JSON.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 400,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content || '';
+
+    if (!content) {
+      return { subreddits: [], hashtags: [] };
+    }
+
+    console.log('Raw combined response:', content);
+
+    // Try to parse as JSON
+    try {
+      const result = JSON.parse(content);
+      return {
+        subreddits: Array.isArray(result.subreddits) ? result.subreddits.slice(0, 10) : [],
+        hashtags: Array.isArray(result.hashtags) ? result.hashtags.slice(0, 10) : [],
+      };
+    } catch (parseError) {
+      console.error('Failed to parse combined suggestions:', parseError);
+      return { subreddits: [], hashtags: [] };
+    }
+  } catch (error) {
+    console.error('Combined suggestion error:', error);
+    throw error;
+  }
+};

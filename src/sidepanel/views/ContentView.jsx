@@ -3,7 +3,7 @@ import { db } from '../../storage/db';
 import { generateVariations } from '../../services/openai';
 
 const ContentView = ({ activeProject }) => {
-  const [contentType, setContentType] = useState('post');
+  const [contentType, setContentType] = useState('comment');
   const [variations, setVariations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

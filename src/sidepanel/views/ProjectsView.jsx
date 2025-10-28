@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { db } from '../../storage/db';
 import { scrapeAndExtract } from '../../services/scraper';
-import { generateProjectMetadata } from '../../services/openai';
+import { generateProjectMetadata, suggestSubredditsAndHashtags } from '../../services/openai';
 
 const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpdate }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -10,6 +10,9 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
   const [error, setError] = useState(null);
   const [editingProject, setEditingProject] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [showKeywordsForm, setShowKeywordsForm] = useState(false);
+  const [keywordsProject, setKeywordsProject] = useState(null);
+  const [keywords, setKeywords] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,7 +50,23 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
         pageText: extracted.text,
       });
 
-      // Create project with AI-generated metadata
+      // Step 3: Get subreddit suggestions (don't fail if this errors)
+      let subreddits = [];
+      try {
+        subreddits = await suggestSubreddits({
+          apiKey: settings.openaiKey,
+          productName: metadata.name,
+          description: metadata.description,
+          targetAudience: metadata.targetAudience,
+          keyFeatures: metadata.keyFeatures,
+        });
+        console.log('Suggested subreddits:', subreddits);
+      } catch (subredditErr) {
+        console.error('Failed to get subreddit suggestions:', subredditErr);
+        // Continue without subreddits
+      }
+
+      // Create project with AI-generated metadata and subreddit suggestions
       const newProject = {
         id: `proj-${Date.now()}`,
         name: metadata.name,
@@ -56,6 +75,7 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
         targetAudience: metadata.targetAudience,
         keyFeatures: metadata.keyFeatures,
         tone: metadata.tone,
+        suggestedSubreddits: subreddits || [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -100,6 +120,78 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
   const handleCancelEdit = () => {
     setEditingProject(null);
     setEditForm({});
+  };
+
+  const handleShowKeywordsForm = (project) => {
+    setKeywordsProject(project);
+    // Pre-fill with saved keywords if they exist
+    setKeywords(project.marketingKeywords || '');
+    setShowKeywordsForm(true);
+  };
+
+  const handleGenerateWithKeywords = async () => {
+    if (!keywordsProject) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const settings = await db.settings.get('main');
+      if (!settings?.openaiKey) {
+        setError('Please configure your OpenAI API key in Settings');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Generating subreddits and hashtags for:', keywordsProject.name, 'with keywords:', keywords);
+      console.log('Project details:', {
+        name: keywordsProject.name,
+        description: keywordsProject.description,
+        targetAudience: keywordsProject.targetAudience,
+        keyFeatures: keywordsProject.keyFeatures,
+      });
+
+      // Generate both in a single API call
+      const result = await suggestSubredditsAndHashtags({
+        apiKey: settings.openaiKey,
+        productName: keywordsProject.name,
+        description: keywordsProject.description,
+        targetAudience: keywordsProject.targetAudience,
+        keyFeatures: keywordsProject.keyFeatures,
+        keywords: keywords,
+      });
+
+      console.log('API call completed. Result:', result);
+      console.log('Got subreddits:', result.subreddits);
+      console.log('Got hashtags:', result.hashtags);
+
+      if (!result.subreddits || result.subreddits.length === 0) {
+        console.warn('No subreddits returned!');
+      }
+      if (!result.hashtags || result.hashtags.length === 0) {
+        console.warn('No hashtags returned!');
+      }
+
+      await db.projects.update(keywordsProject.id, {
+        suggestedSubreddits: result.subreddits || [],
+        suggestedHashtags: result.hashtags || [],
+        marketingKeywords: keywords, // Save keywords for future use
+        updatedAt: Date.now(),
+      });
+
+      console.log('Project updated in database');
+
+      await onProjectsUpdate();
+      console.log('Projects list refreshed');
+      
+      setShowKeywordsForm(false);
+      setKeywordsProject(null);
+      setKeywords('');
+    } catch (err) {
+      setError(`Failed to generate subreddits: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (projectId) => {
@@ -151,6 +243,50 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
               />
             </svg>
           </button>
+        </div>
+      )}
+
+      {showKeywordsForm && (
+        <div className="card mb-6">
+          <h3 className="text-lg font-semibold mb-4">Generate Subreddits & Hashtags</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Enter keywords to find targeted subreddits and hashtags for "{keywordsProject?.name}"
+          </p>
+          <div className="space-y-4">
+            <div>
+              <label className="label">Keywords (comma-separated)</label>
+              <input
+                type="text"
+                value={keywords}
+                onChange={(e) => setKeywords(e.target.value)}
+                className="input"
+                placeholder="e.g., SaaS, directory, software, indie hackers"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Add specific keywords to find more targeted subreddits
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleGenerateWithKeywords}
+                disabled={loading}
+                className="btn btn-primary"
+              >
+                {loading ? 'Generating...' : 'Generate Subreddits & Hashtags'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowKeywordsForm(false);
+                  setKeywordsProject(null);
+                  setKeywords('');
+                }}
+                className="btn btn-secondary"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -314,7 +450,93 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
                       </h3>
                       <p className="text-sm text-gray-600 mb-2">{project.url}</p>
                       {project.description && (
-                        <p className="text-sm text-gray-700">{project.description}</p>
+                        <p className="text-sm text-gray-700 mb-3">{project.description}</p>
+                      )}
+                      <div className="mt-3 mb-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-semibold text-gray-700">Suggested Subreddits:</p>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShowKeywordsForm(project);
+                            }}
+                            disabled={loading}
+                            className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                            title="Generate subreddit suggestions with keywords"
+                          >
+                            {project.suggestedSubreddits?.length > 0 ? 'Refresh' : 'Generate'}
+                          </button>
+                        </div>
+                        {project.suggestedSubreddits && project.suggestedSubreddits.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {project.suggestedSubreddits.map((subreddit) => (
+                              <a
+                                key={subreddit}
+                                href={`https://www.reddit.com/r/${subreddit}/`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs hover:bg-orange-200 transition-colors"
+                              >
+                                r/{subreddit}
+                              </a>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-500 italic">
+                            Click "Generate" to get subreddit suggestions
+                          </p>
+                        )}
+                      </div>
+                      {project.suggestedHashtags && project.suggestedHashtags.length > 0 && (
+                        <div className="mt-3 mb-3">
+                          <p className="text-xs font-semibold text-gray-700 mb-2">Suggested Hashtags:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {project.suggestedHashtags.map((hashtag) => (
+                              <div key={hashtag} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                                <span>#{hashtag}</span>
+                                <div className="flex gap-1 ml-1">
+                                  <a
+                                    href={`https://x.com/search?q=%23${hashtag}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="hover:opacity-70"
+                                    title="Search on X/Twitter"
+                                  >
+                                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                    </svg>
+                                  </a>
+                                  <a
+                                    href={`https://bsky.app/search?q=%23${hashtag}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="hover:opacity-70"
+                                    title="Search on Bluesky"
+                                  >
+                                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+                                    </svg>
+                                  </a>
+                                  <a
+                                    href={`https://primal.net/search/${encodeURIComponent('#' + hashtag)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="hover:opacity-70"
+                                    title="Search on Primal"
+                                  >
+                                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M13.5 2c-5.621 0-10.211 4.443-10.475 10h-3.025l5 6.625 5-6.625h-2.975c.257-3.351 3.06-6 6.475-6 3.584 0 6.5 2.916 6.5 6.5s-2.916 6.5-6.5 6.5c-1.863 0-3.542-.793-4.728-2.053l-2.427 3.216c1.877 1.754 4.389 2.837 7.155 2.837 5.79 0 10.5-4.71 10.5-10.5s-4.71-10.5-10.5-10.5z"/>
+                                    </svg>
+                                  </a>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                       <div className="mt-3 text-xs text-gray-500">
                         Created {new Date(project.createdAt).toLocaleDateString()}
