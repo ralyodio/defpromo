@@ -15,6 +15,10 @@
     "https://www.linkedin.com/*",
     "https://www.reddit.com/*",
     "https://www.facebook.com/*",
+    "https://www.instagram.com/*",
+    "https://www.threads.net/*",
+    "https://www.youtube.com/*",
+    "https://www.tiktok.com/*",
     "https://stacker.news/*",
     "https://bsky.app/*",
     "https://*.bsky.social/*",
@@ -111,6 +115,26 @@
     {
       "matches": ["https://web.telegram.org/*"],
       "js": ["content/content-telegram.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.tiktok.com/*"],
+      "js": ["content/content-tiktok.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.instagram.com/*"],
+      "js": ["content/content-instagram.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.threads.net/*"],
+      "js": ["content/content-threads.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content/content-youtube.js"],
       "run_at": "document_idle"
     }
   ],

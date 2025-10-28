@@ -93,6 +93,26 @@
       "matches": ["https://web.telegram.org/*"],
       "js": ["content/content-telegram.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.tiktok.com/*"],
+      "js": ["content/content-tiktok.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.instagram.com/*"],
+      "js": ["content/content-instagram.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.threads.net/*"],
+      "js": ["content/content-threads.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content/content-youtube.js"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
