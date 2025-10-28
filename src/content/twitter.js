@@ -2,6 +2,71 @@
 console.log('DefPromo: Twitter content script loaded');
 
 /**
+ * Extract Twitter/X post context for AI generation
+ */
+const getTwitterPostContext = () => {
+  try {
+    let title = '';
+    let content = '';
+    
+    // Get the main tweet content from article element
+    const tweetArticle = document.querySelector('article[data-testid="tweet"]');
+    
+    if (tweetArticle) {
+      // Extract tweet text content
+      const tweetTextElement = tweetArticle.querySelector('[data-testid="tweetText"]');
+      if (tweetTextElement) {
+        content = tweetTextElement.textContent?.trim() || '';
+      }
+      
+      // Extract author name for context
+      const authorElement = tweetArticle.querySelector('[data-testid="User-Name"]');
+      if (authorElement) {
+        const authorName = authorElement.textContent?.trim() || '';
+        title = `Tweet by ${authorName}`;
+      }
+    }
+    
+    // Fallback: try to get from any visible tweet text
+    if (!content) {
+      const tweetTexts = document.querySelectorAll('[data-testid="tweetText"]');
+      if (tweetTexts.length > 0) {
+        content = tweetTexts[0].textContent?.trim() || '';
+      }
+    }
+    
+    // Additional fallback: check for quote tweets or embedded content
+    if (!content) {
+      const quoteTweet = document.querySelector('[data-testid="quoteTweet"]');
+      if (quoteTweet) {
+        const quoteText = quoteTweet.querySelector('[data-testid="tweetText"]');
+        if (quoteText) {
+          content = quoteText.textContent?.trim() || '';
+        }
+      }
+    }
+    
+    // If still no title, use page title or URL
+    if (!title) {
+      title = document.title || window.location.href;
+    }
+
+    console.log('Extracted Twitter context:', {
+      title: title.substring(0, 50) + '...',
+      content: content.substring(0, 100) + '...'
+    });
+
+    return {
+      title: title.trim(),
+      content: content.trim().substring(0, 1000) // Limit to 1000 chars
+    };
+  } catch (error) {
+    console.error('Failed to extract Twitter post context:', error);
+    return { title: '', content: '' };
+  }
+};
+
+/**
  * Detect Twitter post/comment forms and inject auto-fill button
  */
 
@@ -111,6 +176,15 @@ const handleAutoFill = async (textarea, type) => {
     console.error('Auto-fill error:', error);
   }
 };
+
+// Listen for messages from sidebar
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'GET_PAGE_CONTEXT') {
+    const context = getTwitterPostContext();
+    sendResponse({ success: true, context });
+    return true;
+  }
+});
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
