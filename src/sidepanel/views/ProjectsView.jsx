@@ -8,6 +8,8 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [editingProject, setEditingProject] = useState(null);
+  const [editForm, setEditForm] = useState({});
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,6 +70,36 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEdit = (project) => {
+    setEditingProject(project.id);
+    setEditForm({
+      name: project.name,
+      url: project.url,
+      description: project.description || '',
+      targetAudience: project.targetAudience || '',
+      tone: project.tone || 'professional',
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      await db.projects.update(editingProject, {
+        ...editForm,
+        updatedAt: Date.now(),
+      });
+      await onProjectsUpdate();
+      setEditingProject(null);
+      setEditForm({});
+    } catch (err) {
+      setError(`Failed to update project: ${err.message}`);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingProject(null);
+    setEditForm({});
   };
 
   const handleDelete = async (projectId) => {
@@ -202,49 +234,141 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
           {projects.map((project) => (
             <div
               key={project.id}
-              className={`card cursor-pointer transition-all ${
+              className={`card transition-all ${
                 activeProject?.id === project.id
                   ? 'ring-2 ring-primary-500 bg-primary-50'
-                  : 'hover:shadow-lg'
+                  : ''
               }`}
-              onClick={() => onProjectChange(project.id)}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                    {project.name}
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-2">{project.url}</p>
-                  {project.description && (
-                    <p className="text-sm text-gray-700">{project.description}</p>
-                  )}
-                  <div className="mt-3 text-xs text-gray-500">
-                    Created {new Date(project.createdAt).toLocaleDateString()}
+              {editingProject === project.id ? (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold mb-4">Edit Project</h3>
+                  <div>
+                    <label className="label">Project Name</label>
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">URL</label>
+                    <input
+                      type="url"
+                      value={editForm.url}
+                      onChange={(e) => setEditForm({ ...editForm, url: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Description</label>
+                    <textarea
+                      value={editForm.description}
+                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                      className="input"
+                      rows="3"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Target Audience</label>
+                    <input
+                      type="text"
+                      value={editForm.targetAudience}
+                      onChange={(e) => setEditForm({ ...editForm, targetAudience: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Tone</label>
+                    <select
+                      value={editForm.tone}
+                      onChange={(e) => setEditForm({ ...editForm, tone: e.target.value })}
+                      className="input"
+                    >
+                      <option value="professional">Professional</option>
+                      <option value="casual">Casual</option>
+                      <option value="enthusiastic">Enthusiastic</option>
+                      <option value="technical">Technical</option>
+                      <option value="friendly">Friendly</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={handleSaveEdit} className="btn btn-primary">
+                      Save Changes
+                    </button>
+                    <button onClick={handleCancelEdit} className="btn btn-secondary">
+                      Cancel
+                    </button>
                   </div>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(project.id);
-                  }}
-                  className="text-red-600 hover:text-red-800 p-2"
-                  title="Delete project"
+              ) : (
+                <div
+                  className="cursor-pointer"
+                  onClick={() => onProjectChange(project.id)}
                 >
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
-              </div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        {project.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-2">{project.url}</p>
+                      {project.description && (
+                        <p className="text-sm text-gray-700">{project.description}</p>
+                      )}
+                      <div className="mt-3 text-xs text-gray-500">
+                        Created {new Date(project.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(project);
+                        }}
+                        className="text-blue-600 hover:text-blue-800 p-2"
+                        title="Edit project"
+                      >
+                        <svg
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(project.id);
+                        }}
+                        className="text-red-600 hover:text-red-800 p-2"
+                        title="Delete project"
+                      >
+                        <svg
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
