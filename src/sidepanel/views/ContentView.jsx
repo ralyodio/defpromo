@@ -451,7 +451,25 @@ const ContentView = ({ activeProject }) => {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Content Generation</h2>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-3">Content Generation</h2>
+        <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-primary-50 to-blue-50 border border-primary-200 rounded-lg">
+          <div className="flex-shrink-0">
+            <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+          </div>
+          <div className="flex-1">
+            <div className="text-sm text-gray-600 font-medium">Generating content for:</div>
+            <div className="text-lg font-bold text-gray-900">{activeProject.name}</div>
+            {activeProject.description && (
+              <div className="text-sm text-gray-600 mt-1">{activeProject.description}</div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 whitespace-pre-wrap">

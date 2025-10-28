@@ -51,8 +51,10 @@ const App = () => {
       const project = await db.projects.get(projectId);
       setActiveProject(project);
       
-      // Save active project to settings
+      // Save active project to settings - MUST preserve existing settings!
+      const existingSettings = await db.settings.get('main') || {};
       await db.settings.put({
+        ...existingSettings,
         id: 'main',
         activeProjectId: projectId,
       });
@@ -110,8 +112,12 @@ const App = () => {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">DefPromo</h1>
           {activeProject && (
-            <div className="text-sm text-gray-600">
-              Project: <span className="font-medium">{activeProject.name}</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary-50 border border-primary-200 rounded-lg">
+              <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
+              <div className="text-sm">
+                <span className="text-gray-600">Active:</span>{' '}
+                <span className="font-semibold text-primary-700">{activeProject.name}</span>
+              </div>
             </div>
           )}
         </div>

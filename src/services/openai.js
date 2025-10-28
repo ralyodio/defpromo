@@ -178,14 +178,18 @@ Content: ${pageContext.content || 'N/A'}
 Generate ${variationCount} helpful, authentic comments that:
 1. Provide genuine value and insight related to the post
 2. Answer questions or add useful perspective
-3. Naturally mention "${productName}" ONLY if truly relevant to helping the poster
-4. Don't be salesy - be a helpful community member first
+3. Subtly and naturally work in a mention of "${productName}" as part of your helpful response
+4. Make the product mention feel organic - like you're sharing a tool that genuinely helps with their situation
+5. Don't be overly promotional - be conversational and authentic
 
-Product Info (use sparingly, only when relevant):
-- ${productName}: ${description}
+Your Product/Service to mention:
+- Name: ${productName}
+- Description: ${description}
 ${keyFeatures?.length > 0 ? `- Key features: ${keyFeatures.join(', ')}` : ''}
 
 Tone: ${tone}
+
+IMPORTANT: Each comment MUST include a natural, subtle reference to "${productName}" while being genuinely helpful. Think of it as recommending a tool you personally use and find valuable for situations like the one in the post.
 
 Generate ${variationCount} variations, each on its own line, separated by blank lines. No numbering, no JSON, just plain text comments.`;
   } else {

@@ -122,10 +122,12 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
     setEditForm({});
   };
 
-  const handleShowKeywordsForm = (project) => {
-    setKeywordsProject(project);
+  const handleShowKeywordsForm = async (project) => {
+    // Get the latest project data to ensure we have saved keywords
+    const latestProject = await db.projects.get(project.id);
+    setKeywordsProject(latestProject);
     // Pre-fill with saved keywords if they exist
-    setKeywords(project.marketingKeywords || '');
+    setKeywords(latestProject?.marketingKeywords || '');
     setShowKeywordsForm(true);
   };
 
@@ -137,8 +139,11 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
 
     try {
       const settings = await db.settings.get('main');
+      console.log('Settings retrieved:', settings ? 'Found' : 'Not found');
+      console.log('OpenAI key present:', settings?.openaiKey ? 'Yes' : 'No');
+      
       if (!settings?.openaiKey) {
-        setError('Please configure your OpenAI API key in Settings');
+        setError('Please configure your OpenAI API key in Settings. Current settings: ' + JSON.stringify(settings || {}));
         setLoading(false);
         return;
       }
@@ -246,50 +251,6 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
         </div>
       )}
 
-      {showKeywordsForm && (
-        <div className="card mb-6">
-          <h3 className="text-lg font-semibold mb-4">Generate Subreddits & Hashtags</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Enter keywords to find targeted subreddits and hashtags for "{keywordsProject?.name}"
-          </p>
-          <div className="space-y-4">
-            <div>
-              <label className="label">Keywords (comma-separated)</label>
-              <input
-                type="text"
-                value={keywords}
-                onChange={(e) => setKeywords(e.target.value)}
-                className="input"
-                placeholder="e.g., SaaS, directory, software, indie hackers"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Add specific keywords to find more targeted subreddits
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleGenerateWithKeywords}
-                disabled={loading}
-                className="btn btn-primary"
-              >
-                {loading ? 'Generating...' : 'Generate Subreddits & Hashtags'}
-              </button>
-              <button
-                onClick={() => {
-                  setShowKeywordsForm(false);
-                  setKeywordsProject(null);
-                  setKeywords('');
-                }}
-                className="btn btn-secondary"
-                disabled={loading}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {showCreateForm && (
         <div className="card mb-6">
           <h3 className="text-lg font-semibold mb-4">Create New Project</h3>
@@ -368,6 +329,7 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
       ) : (
         <div className="grid gap-4">
           {projects.map((project) => (
+            <>
             <div
               key={project.id}
               className={`card transition-all ${
@@ -592,6 +554,53 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
                 </div>
               )}
             </div>
+            
+            {/* Show keywords form right after THIS project if it's the active one */}
+            {showKeywordsForm && activeProject?.id === project.id && keywordsProject?.id === project.id && (
+              <div className="card border-2 border-primary-300 bg-yellow-50">
+                <h3 className="text-lg font-semibold mb-4">📊 Generate Subreddits & Hashtags</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Enter keywords to find targeted subreddits and hashtags for "<strong>{keywordsProject?.name}</strong>"
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="label">Keywords (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={keywords}
+                      onChange={(e) => setKeywords(e.target.value)}
+                      className="input"
+                      placeholder="e.g., SaaS, directory, software, indie hackers"
+                      autoFocus
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Add specific keywords to find more targeted subreddits
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleGenerateWithKeywords}
+                      disabled={loading}
+                      className="btn btn-primary"
+                    >
+                      {loading ? 'Generating...' : 'Generate Subreddits & Hashtags'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowKeywordsForm(false);
+                        setKeywordsProject(null);
+                        setKeywords('');
+                      }}
+                      className="btn btn-secondary"
+                      disabled={loading}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            </>
           ))}
         </div>
       )}
