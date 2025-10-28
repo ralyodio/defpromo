@@ -7,6 +7,7 @@ const ContentView = ({ activeProject }) => {
   const [variations, setVariations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [editingIndex, setEditingIndex] = useState(null);
   const [editedText, setEditedText] = useState('');
   const [history, setHistory] = useState([]);
@@ -206,76 +207,237 @@ const ContentView = ({ activeProject }) => {
   };
 
   const handleFillForm = async (text) => {
+    // Clear previous messages
+    setError(null);
+    setSuccess(null);
+    
     try {
+      // Use browser API for Firefox compatibility
+      const api = typeof browser !== 'undefined' ? browser : chrome;
+      const isFirefox = typeof browser !== 'undefined';
+      
       // Get current tab
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tab?.id) {
+      const tabs = await api.tabs.query({ active: true, currentWindow: true });
+      if (!tabs || tabs.length === 0 || !tabs[0]?.id) {
         setError('No active tab found');
         return;
       }
+      
+      const tab = tabs[0];
 
-      // Execute script to fill the comment form
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: (commentText) => {
-          // Step 1: Try to find and click the Reddit comment trigger button
-          const triggerButton = document.querySelector('faceplate-textarea-input[data-testid="trigger-button"]');
-          if (triggerButton) {
-            triggerButton.click();
+      // Define the function to inject
+      const injectFunc = (commentText) => {
+          // Helper function to fill element
+          const fillElement = (element, text) => {
+            if (!element) return false;
             
-            // Wait a bit for the form to render
-            setTimeout(() => {
-              // Step 2: Find the actual textarea in the rendered form
-              const textarea = document.querySelector('shreddit-composer textarea[placeholder*="Share your thoughts" i]');
-              if (textarea) {
-                textarea.value = commentText;
-                textarea.dispatchEvent(new Event('input', { bubbles: true }));
-                textarea.dispatchEvent(new Event('change', { bubbles: true }));
-                textarea.focus();
-                return;
+            if (element.contentEditable === 'true' || element.getAttribute('contenteditable') === 'true') {
+              // For contenteditable elements
+              element.focus();
+              
+              // For Lexical editor (Reddit)
+              if (element.hasAttribute('data-lexical-editor')) {
+                // Method 1: Try using clipboard paste
+                element.focus();
+                
+                // Create a paste event
+                const dataTransfer = new DataTransfer();
+                dataTransfer.setData('text/plain', text);
+                const pasteEvent = new ClipboardEvent('paste', {
+                  bubbles: true,
+                  cancelable: true,
+                  clipboardData: dataTransfer
+                });
+                
+                if (element.dispatchEvent(pasteEvent)) {
+                  // Paste event handled
+                  return true;
+                }
+                
+                // Method 2: Fallback - use execCommand if available
+                try {
+                  document.execCommand('selectAll', false, null);
+                  document.execCommand('delete', false, null);
+                  document.execCommand('insertText', false, text);
+                  element.dispatchEvent(new Event('input', { bubbles: true }));
+                  return true;
+                } catch (e) {
+                  // Method 3: Direct DOM manipulation as last resort
+                  element.innerHTML = '';
+                  
+                  const lines = text.split('\n');
+                  lines.forEach((line) => {
+                    const p = document.createElement('p');
+                    p.className = 'first:mt-0 last:mb-0';
+                    p.setAttribute('dir', 'auto');
+                    
+                    if (line.trim()) {
+                      const span = document.createElement('span');
+                      span.setAttribute('data-lexical-text', 'true');
+                      span.textContent = line;
+                      p.appendChild(span);
+                    } else {
+                      p.appendChild(document.createElement('br'));
+                    }
+                    
+                    element.appendChild(p);
+                  });
+                  
+                  // Fire comprehensive events
+                  element.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                  element.dispatchEvent(new Event('change', { bubbles: true }));
+                  element.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true }));
+                  element.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: text }));
+                }
+              } else {
+                // For other contenteditable elements (Twitter/X, etc.)
+                element.innerHTML = '';
+                element.textContent = text;
+                
+                // Trigger events
+                element.dispatchEvent(new Event('input', { bubbles: true }));
+                element.dispatchEvent(new Event('change', { bubbles: true }));
+                element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
+                element.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
               }
-            }, 300);
-            return;
+              
+              return true;
+            } else if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+              // For textarea/input elements
+              element.focus();
+              element.value = text;
+              
+              // Trigger events
+              element.dispatchEvent(new Event('input', { bubbles: true }));
+              element.dispatchEvent(new Event('change', { bubbles: true }));
+              
+              return true;
+            }
+            
+            return false;
+          };
+
+          // Priority selectors for specific platforms
+          const prioritySelectors = [
+            // Reddit - new Lexical editor
+            'div[slot="rte"][data-lexical-editor="true"][contenteditable="true"]',
+            'div[name="body"][data-lexical-editor="true"][contenteditable="true"]',
+            'div[contenteditable="true"][data-lexical-editor="true"]',
+            
+            // Twitter/X - main tweet box
+            '[data-testid="tweetTextarea_0"]',
+            'div[contenteditable="true"][role="textbox"][data-testid="tweetTextarea_0"]',
+            
+            // Reddit - older comment boxes
+            'shreddit-composer textarea',
+            'textarea[placeholder*="Share your thoughts" i]',
+            'faceplate-textarea[name="comment"]',
+          ];
+
+          // Try priority selectors first (visible elements only)
+          for (const selector of prioritySelectors) {
+            const element = document.querySelector(selector);
+            if (element && element.offsetParent !== null) {
+              if (fillElement(element, commentText)) {
+                return { success: true, selector };
+              }
+            }
           }
 
-          // Fallback: Try multiple selectors for different platforms
-          const selectors = [
-            'shreddit-composer textarea',
+          // Fallback: Try general selectors (visible elements only)
+          const fallbackSelectors = [
             'textarea[placeholder*="comment" i]',
             'textarea[placeholder*="reply" i]',
             'textarea[placeholder*="thoughts" i]',
+            'textarea[placeholder*="conversation" i]',
             'textarea[name="comment"]',
             'textarea[aria-label*="comment" i]',
+            'div[contenteditable="true"][role="textbox"]',
             '[contenteditable="true"]',
             'textarea',
           ];
 
-          for (const selector of selectors) {
+          for (const selector of fallbackSelectors) {
             const element = document.querySelector(selector);
-            if (element && element.offsetParent !== null) { // Check if visible
-              if (element.contentEditable === 'true') {
-                element.textContent = commentText;
-                element.innerHTML = commentText;
-              } else {
-                element.value = commentText;
+            if (element && element.offsetParent !== null) {
+              if (fillElement(element, commentText)) {
+                return { success: true, selector };
               }
-              
-              // Trigger input event
-              element.dispatchEvent(new Event('input', { bubbles: true }));
-              element.dispatchEvent(new Event('change', { bubbles: true }));
-              
-              // Focus the element
-              element.focus();
-              return true;
             }
           }
-          return false;
-        },
-        args: [text],
-      });
+
+          // Last resort: Try all elements even if hidden (might be revealed on interaction)
+          for (const selector of [...prioritySelectors, ...fallbackSelectors]) {
+            const element = document.querySelector(selector);
+            if (element) {
+              if (fillElement(element, commentText)) {
+                return { success: true, selector, wasHidden: true };
+              }
+            }
+          }
+          
+          // Return debug info about what was found
+          const foundElements = [];
+          [...prioritySelectors, ...fallbackSelectors].forEach(sel => {
+            const el = document.querySelector(sel);
+            if (el) {
+              foundElements.push({
+                selector: sel,
+                visible: el.offsetParent !== null,
+                tag: el.tagName
+              });
+            }
+          });
+          
+          return { 
+            success: false, 
+            foundElements,
+            url: window.location.href
+          };
+      };
+
+      // Execute script differently based on browser
+      let results;
+      if (isFirefox) {
+        // Firefox Manifest V2: Use tabs.executeScript
+        results = await api.tabs.executeScript(tab.id, {
+          code: `(${injectFunc.toString()})(${JSON.stringify(text)});`
+        });
+      } else {
+        // Chrome Manifest V3: Use scripting.executeScript
+        results = await api.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: injectFunc,
+          args: [text],
+        });
+      }
+
+      // Check result
+      const result = results?.[0]?.result || results?.[0];
+      console.log('Fill form result:', result);
+
+      if (result?.success) {
+        setError(null);
+        const successMsg = result.wasHidden 
+          ? 'Form filled (element was hidden but filled anyway - check the page)'
+          : 'Form filled successfully!';
+        console.log(`✓ ${successMsg} using selector: ${result.selector}`);
+        
+        setSuccess(successMsg);
+        // Clear success message after 4 seconds
+        setTimeout(() => setSuccess(null), 4000);
+      } else {
+        // Show detailed error
+        const debugInfo = result?.foundElements?.length 
+          ? `Found ${result.foundElements.length} elements but none were fillable:\n${JSON.stringify(result.foundElements, null, 2)}`
+          : 'No matching form elements found on page';
+        
+        console.error('Fill form failed:', debugInfo);
+        setError(`Could not find form to fill. Try:\n1. Click on the comment box on the page\n2. Then click Fill Form again\n\nDebug: ${debugInfo}`);
+      }
     } catch (err) {
       console.error('Failed to fill form:', err);
-      setError('Failed to fill form. Please copy and paste manually.');
+      setError(`Failed to fill form: ${err.message}`);
     }
   };
 
@@ -292,8 +454,14 @@ const ContentView = ({ activeProject }) => {
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Content Generation</h2>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 whitespace-pre-wrap">
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+          ✓ {success}
         </div>
       )}
 
