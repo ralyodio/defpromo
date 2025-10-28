@@ -2,6 +2,57 @@
 console.log('DefPromo: Reddit content script loaded');
 
 /**
+ * Extract Reddit post context for AI generation
+ */
+const getRedditPostContext = () => {
+  try {
+    let title = '';
+    let content = '';
+    
+    // Get title using wildcard selector for #post-title-*
+    const titleElement = document.querySelector('[id^="post-title-"]');
+    if (titleElement) {
+      title = titleElement.textContent?.trim() || '';
+    }
+    
+    // Get content from the specific DOM structure
+    const textBodyContainer = document.querySelector('[data-post-click-location="text-body"]');
+    if (textBodyContainer) {
+      const contentDiv = textBodyContainer.querySelector('[property="schema:articleBody"]');
+      if (contentDiv) {
+        content = contentDiv.textContent?.trim() || '';
+      }
+    }
+    
+    // Fallback to generic selectors if specific ones fail
+    if (!title) {
+      title = document.querySelector('h1')?.textContent?.trim() || document.title;
+    }
+    
+    if (!content) {
+      // Try shreddit-post as fallback
+      const shredditPost = document.querySelector('shreddit-post');
+      if (shredditPost) {
+        const textBody = shredditPost.querySelector('[slot="text-body"]');
+        if (textBody) {
+          content = textBody.textContent?.trim() || '';
+        }
+      }
+    }
+
+    console.log('Extracted context:', { title, content: content.substring(0, 100) + '...' });
+
+    return {
+      title: title.trim(),
+      content: content.trim().substring(0, 1000) // Limit to 1000 chars
+    };
+  } catch (error) {
+    console.error('Failed to extract Reddit post context:', error);
+    return { title: '', content: '' };
+  }
+};
+
+/**
  * Detect Reddit post/comment forms and inject auto-fill button
  */
 
@@ -115,6 +166,15 @@ const handleAutoFill = async (textarea, type) => {
     console.error('Auto-fill error:', error);
   }
 };
+
+// Listen for messages from sidebar
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'GET_PAGE_CONTEXT') {
+    const context = getRedditPostContext();
+    sendResponse({ success: true, context });
+    return true;
+  }
+});
 
 // Initialize
 if (document.readyState === 'loading') {

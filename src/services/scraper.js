@@ -34,14 +34,13 @@ export const scrapeUrl = async ({ url, apiKey, service = 'scrapingbee' }) => {
         break;
 
       case 'browserless':
-        scraperUrl = 'https://chrome.browserless.io/content';
+        scraperUrl = `https://production-sfo.browserless.io/content?token=${apiKey}`;
         options = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            token: apiKey,
             url: url,
           }),
         };
@@ -54,13 +53,24 @@ export const scrapeUrl = async ({ url, apiKey, service = 'scrapingbee' }) => {
     const response = await fetch(scraperUrl, options);
 
     if (!response.ok) {
-      throw new Error(`Scraping failed: ${response.status} ${response.statusText}`);
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Scraping failed: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`
+      );
     }
 
     const html = await response.text();
     return html;
   } catch (error) {
     console.error('Scraping error:', error);
+    
+    // Provide more helpful error messages
+    if (error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch')) {
+      throw new Error(
+        'Network error: Unable to connect to scraping service. Please check your internet connection and ensure the extension has the necessary permissions.'
+      );
+    }
+    
     throw error;
   }
 };

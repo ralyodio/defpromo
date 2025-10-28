@@ -126,6 +126,10 @@ class SidebarInjector {
     return `
       :host {
         all: initial;
+        user-select: text;
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
       }
 
       .defpromo-sidebar-wrapper {
@@ -140,6 +144,10 @@ class SidebarInjector {
         flex-direction: column;
         transform: translateX(100%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        user-select: text;
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
       }
 
       .defpromo-sidebar-wrapper.visible {

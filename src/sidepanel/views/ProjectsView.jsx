@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { db } from '../../storage/db';
 import { scrapeAndExtract } from '../../services/scraper';
-import { generateContent } from '../../services/openai';
+import { generateProjectMetadata } from '../../services/openai';
 
 const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpdate }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -15,7 +15,7 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
     setError(null);
 
     try {
-      // Get Browserless API key from settings
+      // Get API keys from settings
       const settings = await db.settings.get('main');
       if (!settings?.scraperKey) {
         setError('Please configure your Browserless API key in Settings');
@@ -23,22 +23,37 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
         return;
       }
 
-      // Scrape the URL using Browserless to get metadata
+      if (!settings?.openaiKey) {
+        setError('Please configure your OpenAI API key in Settings');
+        setLoading(false);
+        return;
+      }
+
+      // Step 1: Scrape the URL using Browserless
       const extracted = await scrapeAndExtract({
         url,
         apiKey: settings.scraperKey,
         service: 'browserless',
       });
 
-      // Create project with auto-generated metadata
+      // Step 2: Use OpenAI to generate better project metadata
+      const metadata = await generateProjectMetadata({
+        apiKey: settings.openaiKey,
+        url,
+        title: extracted.title,
+        metaDescription: extracted.description,
+        pageText: extracted.text,
+      });
+
+      // Create project with AI-generated metadata
       const newProject = {
         id: `proj-${Date.now()}`,
-        name: extracted.title || new URL(url).hostname,
+        name: metadata.name,
         url,
-        description: extracted.description || extracted.text.substring(0, 200) || '',
-        targetAudience: '',
-        keyFeatures: [],
-        tone: 'professional',
+        description: metadata.description,
+        targetAudience: metadata.targetAudience,
+        keyFeatures: metadata.keyFeatures,
+        tone: metadata.tone,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -81,8 +96,29 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-          {error}
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 relative">
+          <div className="pr-10">{error}</div>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(error);
+            }}
+            className="absolute top-2 right-2 p-2 hover:bg-red-100 rounded transition-colors"
+            title="Copy error message"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
+            </svg>
+          </button>
         </div>
       )}
 
@@ -90,7 +126,7 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
         <div className="card mb-6">
           <h3 className="text-lg font-semibold mb-4">Create New Project</h3>
           <p className="text-sm text-gray-600 mb-4">
-            Enter your product URL and we'll automatically extract the name and description using Browserless.
+            Enter your product URL and we'll use AI to analyze the page and generate optimized project details.
           </p>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -104,7 +140,7 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
-                We'll scrape this URL to automatically generate project details
+                We'll analyze this page with AI to create a complete project profile
               </p>
             </div>
 

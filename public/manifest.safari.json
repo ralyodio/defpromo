@@ -11,7 +11,13 @@
     "tabs"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "<all_urls>",
+    "https://chrome.browserless.io/*",
+    "https://production-sfo.browserless.io/*",
+    "https://*.browserless.io/*",
+    "https://app.scrapingbee.com/*",
+    "http://api.scraperapi.com/*",
+    "https://api.openai.com/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js"

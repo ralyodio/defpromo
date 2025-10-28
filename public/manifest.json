@@ -21,7 +21,13 @@
     "https://primal.net/*",
     "https://*.slack.com/*",
     "https://discord.com/*",
-    "https://web.telegram.org/*"
+    "https://web.telegram.org/*",
+    "https://chrome.browserless.io/*",
+    "https://production-sfo.browserless.io/*",
+    "https://*.browserless.io/*",
+    "https://app.scrapingbee.com/*",
+    "http://api.scraperapi.com/*",
+    "https://api.openai.com/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js",

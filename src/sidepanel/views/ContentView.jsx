@@ -10,6 +10,9 @@ const ContentView = ({ activeProject }) => {
   const [editingIndex, setEditingIndex] = useState(null);
   const [editedText, setEditedText] = useState('');
   const [history, setHistory] = useState([]);
+  const [showContextEditor, setShowContextEditor] = useState(false);
+  const [contextTitle, setContextTitle] = useState('');
+  const [contextContent, setContextContent] = useState('');
 
   useEffect(() => {
     if (activeProject) {
@@ -31,7 +34,88 @@ const ContentView = ({ activeProject }) => {
     }
   };
 
-  const handleGenerate = async () => {
+  const getPageContext = async () => {
+    try {
+      // Use browser API for Firefox compatibility
+      const api = typeof browser !== 'undefined' ? browser : chrome;
+      
+      // Get current tab
+      const tabs = await api.tabs.query({ active: true, currentWindow: true });
+      
+      console.log('Query result:', tabs);
+      
+      if (!tabs || tabs.length === 0) {
+        throw new Error('No active tab found. Make sure you have a Reddit tab open.');
+      }
+
+      const tab = tabs[0];
+      
+      if (!tab?.id) {
+        throw new Error('Tab has no ID');
+      }
+
+      // Check if we're on Reddit
+      if (!tab.url?.includes('reddit.com')) {
+        throw new Error(`Not on a Reddit page. Current URL: ${tab.url || 'unknown'}`);
+      }
+
+      console.log('Sending message to tab:', tab.id, tab.url);
+
+      // Send message to content script to get page context
+      const response = await api.tabs.sendMessage(tab.id, {
+        type: 'GET_PAGE_CONTEXT',
+      });
+
+      console.log('Received response:', response);
+
+      if (!response) {
+        throw new Error('No response from content script. The page may need to be refreshed.');
+      }
+
+      if (response?.success && response?.context) {
+        return response.context;
+      }
+
+      throw new Error('Content script returned invalid data. Try refreshing the page.');
+    } catch (err) {
+      console.error('Failed to get page context:', err);
+      throw new Error(err.message || 'Failed to extract context');
+    }
+  };
+
+  const handlePrepareGenerate = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Get page context for comments
+      if (contentType === 'comment') {
+        try {
+          const pageContext = await getPageContext();
+          console.log('Got page context:', pageContext);
+          setContextTitle(pageContext?.title || '');
+          setContextContent(pageContext?.content || '');
+          setShowContextEditor(true);
+        } catch (contextErr) {
+          console.error('Context extraction error:', contextErr);
+          // Show editor anyway with empty fields so user can manually enter
+          setContextTitle('');
+          setContextContent('');
+          setShowContextEditor(true);
+          setError(`Could not auto-extract context: ${contextErr.message}. Please enter manually.`);
+        }
+      } else {
+        // For posts, generate directly without context
+        await handleGenerate(null);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerate = async (pageContext) => {
     setLoading(true);
     setError(null);
 
@@ -42,6 +126,9 @@ const ContentView = ({ activeProject }) => {
         throw new Error('Please configure your OpenAI API key in Settings');
       }
 
+      // Use provided context or null for posts
+      const context = pageContext || (contentType === 'comment' ? { title: contextTitle, content: contextContent } : null);
+
       // Generate variations
       const generated = await generateVariations({
         apiKey: settings.openaiKey,
@@ -51,6 +138,7 @@ const ContentView = ({ activeProject }) => {
         targetAudience: activeProject.targetAudience || '',
         tone: activeProject.tone || 'professional',
         keyFeatures: activeProject.keyFeatures || [],
+        pageContext: context,
         count: 5,
       });
 
@@ -62,6 +150,7 @@ const ContentView = ({ activeProject }) => {
       }));
 
       setVariations(variationObjects);
+      setShowContextEditor(false);
 
       // Save to database
       const contentId = `content-${Date.now()}`;
@@ -112,9 +201,82 @@ const ContentView = ({ activeProject }) => {
   };
 
   const handleUseVariation = async (variation) => {
-    // This will be used when the user clicks "Use" on a variation
-    // It will be tracked in analytics when actually posted
+    // Copy to clipboard
     await handleCopy(variation.text);
+  };
+
+  const handleFillForm = async (text) => {
+    try {
+      // Get current tab
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) {
+        setError('No active tab found');
+        return;
+      }
+
+      // Execute script to fill the comment form
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: (commentText) => {
+          // Step 1: Try to find and click the Reddit comment trigger button
+          const triggerButton = document.querySelector('faceplate-textarea-input[data-testid="trigger-button"]');
+          if (triggerButton) {
+            triggerButton.click();
+            
+            // Wait a bit for the form to render
+            setTimeout(() => {
+              // Step 2: Find the actual textarea in the rendered form
+              const textarea = document.querySelector('shreddit-composer textarea[placeholder*="Share your thoughts" i]');
+              if (textarea) {
+                textarea.value = commentText;
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                textarea.dispatchEvent(new Event('change', { bubbles: true }));
+                textarea.focus();
+                return;
+              }
+            }, 300);
+            return;
+          }
+
+          // Fallback: Try multiple selectors for different platforms
+          const selectors = [
+            'shreddit-composer textarea',
+            'textarea[placeholder*="comment" i]',
+            'textarea[placeholder*="reply" i]',
+            'textarea[placeholder*="thoughts" i]',
+            'textarea[name="comment"]',
+            'textarea[aria-label*="comment" i]',
+            '[contenteditable="true"]',
+            'textarea',
+          ];
+
+          for (const selector of selectors) {
+            const element = document.querySelector(selector);
+            if (element && element.offsetParent !== null) { // Check if visible
+              if (element.contentEditable === 'true') {
+                element.textContent = commentText;
+                element.innerHTML = commentText;
+              } else {
+                element.value = commentText;
+              }
+              
+              // Trigger input event
+              element.dispatchEvent(new Event('input', { bubbles: true }));
+              element.dispatchEvent(new Event('change', { bubbles: true }));
+              
+              // Focus the element
+              element.focus();
+              return true;
+            }
+          }
+          return false;
+        },
+        args: [text],
+      });
+    } catch (err) {
+      console.error('Failed to fill form:', err);
+      setError('Failed to fill form. Please copy and paste manually.');
+    }
   };
 
   if (!activeProject) {
@@ -167,17 +329,65 @@ const ContentView = ({ activeProject }) => {
           </div>
 
           <button
-            onClick={handleGenerate}
+            onClick={handlePrepareGenerate}
             disabled={loading}
             className="btn btn-primary w-full"
           >
-            {loading ? 'Generating...' : 'Generate 5 Variations'}
+            {loading ? 'Loading...' : 'Generate 5 Variations'}
           </button>
         </div>
       </div>
 
+      {/* Context Editor */}
+      {showContextEditor && (
+        <div className="card mb-6">
+          <h3 className="text-lg font-semibold mb-4">Review Post Context</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Edit the post context below if needed, then click Generate to create comments.
+          </p>
+          <div className="space-y-4">
+            <div>
+              <label className="label">Post Title</label>
+              <input
+                type="text"
+                value={contextTitle}
+                onChange={(e) => setContextTitle(e.target.value)}
+                className="input"
+                placeholder="Post title"
+              />
+            </div>
+            <div>
+              <label className="label">Post Content</label>
+              <textarea
+                value={contextContent}
+                onChange={(e) => setContextContent(e.target.value)}
+                className="input"
+                rows="6"
+                placeholder="Post content"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleGenerate(null)}
+                disabled={loading}
+                className="btn btn-primary"
+              >
+                {loading ? 'Generating...' : 'Generate Comments'}
+              </button>
+              <button
+                onClick={() => setShowContextEditor(false)}
+                className="btn btn-secondary"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Generated Variations */}
-      {variations.length > 0 && (
+      {!showContextEditor && variations.length > 0 && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-4">Generated Variations</h3>
           <div className="space-y-4">
@@ -203,12 +413,18 @@ const ContentView = ({ activeProject }) => {
                 ) : (
                   <div>
                     <p className="text-gray-900 mb-3 whitespace-pre-wrap">{variation.text}</p>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <button
-                        onClick={() => handleUseVariation(variation)}
+                        onClick={() => handleFillForm(variation.text)}
                         className="btn btn-primary text-sm"
                       >
-                        Copy & Use
+                        Fill Form
+                      </button>
+                      <button
+                        onClick={() => handleUseVariation(variation)}
+                        className="btn btn-secondary text-sm"
+                      >
+                        Copy
                       </button>
                       <button
                         onClick={() => handleEdit(index)}
