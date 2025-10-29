@@ -135,7 +135,9 @@ const injectButton = (textarea, type) => {
 
 const handleAutoFill = async (textarea, type) => {
   try {
-    const response = await chrome.runtime.sendMessage({
+    const api = typeof browser !== 'undefined' ? browser : chrome;
+    
+    const response = await api.runtime.sendMessage({
       type: 'GET_CONTENT',
       contentType: type,
     });
@@ -147,7 +149,7 @@ const handleAutoFill = async (textarea, type) => {
       const inputEvent = new Event('input', { bubbles: true });
       textarea.dispatchEvent(inputEvent);
 
-      chrome.runtime.sendMessage({
+      api.runtime.sendMessage({
         type: 'TRACK_USAGE',
         platform: 'instagram',
         contentType: type,
@@ -160,10 +162,13 @@ const handleAutoFill = async (textarea, type) => {
   }
 };
 
-// Listen for messages from sidebar
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+// Listen for messages from sidebar (Firefox compatible)
+const api = typeof browser !== 'undefined' ? browser : chrome;
+api.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Instagram content script received message:', message.type);
   if (message.type === 'GET_PAGE_CONTEXT') {
     const context = getInstagramPostContext();
+    console.log('Responding with context:', context);
     sendResponse({ success: true, context });
     return true;
   }
