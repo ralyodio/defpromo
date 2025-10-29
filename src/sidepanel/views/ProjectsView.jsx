@@ -141,6 +141,8 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
       const settings = await db.settings.get('main');
       console.log('Settings retrieved:', settings ? 'Found' : 'Not found');
       console.log('OpenAI key present:', settings?.openaiKey ? 'Yes' : 'No');
+      console.log('OpenAI key length:', settings?.openaiKey?.length || 0);
+      console.log('OpenAI key starts with:', settings?.openaiKey?.substring(0, 7) || 'N/A');
       
       if (!settings?.openaiKey) {
         setError('Please configure your OpenAI API key in Settings. Current settings: ' + JSON.stringify(settings || {}));
@@ -148,7 +150,10 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
         return;
       }
 
+      // Trim the key to remove any whitespace
+      const trimmedKey = settings.openaiKey.trim();
       console.log('Generating subreddits and hashtags for:', keywordsProject.name, 'with keywords:', keywords);
+      console.log('Using API key (trimmed, first 7 chars):', trimmedKey.substring(0, 7));
       console.log('Project details:', {
         name: keywordsProject.name,
         description: keywordsProject.description,
@@ -158,7 +163,7 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
 
       // Generate both in a single API call
       const result = await suggestSubredditsAndHashtags({
-        apiKey: settings.openaiKey,
+        apiKey: trimmedKey,
         productName: keywordsProject.name,
         description: keywordsProject.description,
         targetAudience: keywordsProject.targetAudience,
@@ -193,7 +198,15 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
       setKeywordsProject(null);
       setKeywords('');
     } catch (err) {
-      setError(`Failed to generate subreddits: ${err.message}`);
+      console.error('Generation error:', err);
+      let errorMessage = `Failed to generate subreddits: ${err.message}`;
+      
+      // Provide helpful guidance for common errors
+      if (err.message?.includes('401')) {
+        errorMessage += '\n\n⚠️ Your OpenAI API key appears to be invalid or missing. Please:\n1. Go to Settings\n2. Re-enter your OpenAI API key\n3. Save and try again';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -610,9 +610,30 @@ Hashtags should:
     // Try to parse as JSON
     try {
       const result = JSON.parse(content);
+      
+      // Clean up subreddits - remove r/ prefix if present
+      const cleanSubreddits = Array.isArray(result.subreddits)
+        ? result.subreddits
+            .map(s => s.trim())
+            .map(s => s.replace(/^r\//, '')) // Remove r/ prefix
+            .map(s => s.replace(/[^\w-]/g, '')) // Remove non-alphanumeric except hyphens
+            .filter(s => s.length > 0)
+            .slice(0, 10)
+        : [];
+      
+      // Clean up hashtags - remove # prefix if present
+      const cleanHashtags = Array.isArray(result.hashtags)
+        ? result.hashtags
+            .map(h => h.trim())
+            .map(h => h.replace(/^#/, '')) // Remove # prefix
+            .map(h => h.replace(/[^\w]/g, '')) // Remove non-alphanumeric
+            .filter(h => h.length > 0)
+            .slice(0, 10)
+        : [];
+      
       return {
-        subreddits: Array.isArray(result.subreddits) ? result.subreddits.slice(0, 10) : [],
-        hashtags: Array.isArray(result.hashtags) ? result.hashtags.slice(0, 10) : [],
+        subreddits: cleanSubreddits,
+        hashtags: cleanHashtags,
       };
     } catch (parseError) {
       console.error('Failed to parse combined suggestions:', parseError);
