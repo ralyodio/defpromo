@@ -71,7 +71,7 @@ const ContentView = ({ activeProject }) => {
       // Send message to content script with timeout
       const response = await Promise.race([
         api.tabs.sendMessage(tab.id, {
-        type: 'GET_PAGE_CONTEXT',
+          type: 'GET_PAGE_CONTEXT',
         }),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Timeout: Content script did not respond. Refresh the page and try again.')), 5000)
@@ -217,7 +217,7 @@ const ContentView = ({ activeProject }) => {
     await handleCopy(variation.text);
   };
 
-  const handleFillForm = async (text) => {
+  const handleFillForm = async (text, variationId) => {
     // Clear previous messages
     setError(null);
     setSuccess(null);
@@ -235,6 +235,24 @@ const ContentView = ({ activeProject }) => {
       }
 
       const tab = tabs[0];
+      
+      // Detect platform from URL
+      const url = tab.url || '';
+      let platform = 'unknown';
+      if (url.includes('reddit.com')) platform = 'reddit';
+      else if (url.includes('twitter.com') || url.includes('x.com')) platform = 'twitter';
+      else if (url.includes('linkedin.com')) platform = 'linkedin';
+      else if (url.includes('facebook.com')) platform = 'facebook';
+      else if (url.includes('instagram.com')) platform = 'instagram';
+      else if (url.includes('threads.net')) platform = 'threads';
+      else if (url.includes('youtube.com')) platform = 'youtube';
+      else if (url.includes('tiktok.com')) platform = 'tiktok';
+      else if (url.includes('bsky.app') || url.includes('bsky.social')) platform = 'bluesky';
+      else if (url.includes('primal.net')) platform = 'primal';
+      else if (url.includes('slack.com')) platform = 'slack';
+      else if (url.includes('discord.com')) platform = 'discord';
+      else if (url.includes('telegram.org')) platform = 'telegram';
+      else if (url.includes('stacker.news')) platform = 'stacker';
 
       // Define the function to inject
       const injectFunc = (commentText) => {
@@ -479,7 +497,7 @@ const ContentView = ({ activeProject }) => {
 
       if (result?.success) {
         setError(null);
-        const successMsg = result.wasHidden 
+        const successMsg = result.wasHidden
           ? 'Form filled (element was hidden but filled anyway - check the page)'
           : 'Form filled successfully!';
         console.log(`✓ ${successMsg} using selector: ${result.selector}`);
@@ -487,6 +505,24 @@ const ContentView = ({ activeProject }) => {
         setSuccess(successMsg);
         // Clear success message after 4 seconds
         setTimeout(() => setSuccess(null), 4000);
+        
+        // Track analytics
+        try {
+          const contentId = history[0]?.id || `content-${Date.now()}`;
+          await db.analytics.add({
+            id: `analytics-${Date.now()}`,
+            projectId: activeProject.id,
+            contentId: contentId,
+            variationId: variationId || 'unknown',
+            platform: platform,
+            contentType: contentType,
+            submittedAt: Date.now(),
+          });
+          console.log('Analytics tracked:', { platform, contentType, projectId: activeProject.id });
+        } catch (analyticsErr) {
+          console.error('Failed to track analytics:', analyticsErr);
+          // Don't fail the whole operation if analytics fails
+        }
       } else {
         // Show detailed error
         const debugInfo = result?.foundElements?.length 
@@ -662,7 +698,7 @@ const ContentView = ({ activeProject }) => {
                     <p className="text-gray-900 mb-3 whitespace-pre-wrap">{variation.text}</p>
                     <div className="flex gap-2 flex-wrap">
                       <button
-                        onClick={() => handleFillForm(variation.text)}
+                        onClick={() => handleFillForm(variation.text, variation.id)}
                         className="btn btn-primary text-sm"
                       >
                         Fill Form
