@@ -61,15 +61,9 @@ const ContentView = ({ activeProject }) => {
       const isLinkedIn = tab.url?.includes('linkedin.com');
       const isBluesky = tab.url?.includes('bsky.app') || tab.url?.includes('bsky.social');
       const isPrimal = tab.url?.includes('primal.net');
-      const isFacebook = tab.url?.includes('facebook.com');
-      const isInstagram = tab.url?.includes('instagram.com');
-      const isThreads = tab.url?.includes('threads.net');
-      const isYouTube = tab.url?.includes('youtube.com');
-      const isTikTok = tab.url?.includes('tiktok.com');
       
-      if (!isReddit && !isTwitter && !isLinkedIn && !isBluesky && !isPrimal && 
-          !isFacebook && !isInstagram && !isThreads && !isYouTube && !isTikTok) {
-        throw new Error(`Not on a supported page. Current URL: ${tab.url || 'unknown'}. Supported: Reddit, Twitter/X, LinkedIn, Bluesky, Primal, Facebook, Instagram, Threads, YouTube, TikTok`);
+      if (!isReddit && !isTwitter && !isLinkedIn && !isBluesky && !isPrimal) {
+        throw new Error(`Not on a supported page. Current URL: ${tab.url || 'unknown'}. Supported: Reddit, Twitter/X, LinkedIn, Bluesky, Primal`);
       }
 
       console.log('Sending message to tab:', tab.id, tab.url);
@@ -412,27 +406,6 @@ const ContentView = ({ activeProject }) => {
             // Primal (Nostr)
             'textarea[placeholder*="What\'s on your mind"]',
             'textarea[placeholder*="Reply"]',
-            
-            // Facebook - contenteditable
-            '[contenteditable="true"][role="textbox"][aria-label*="What\'s on your mind"]',
-            '[contenteditable="true"][role="textbox"][aria-label*="Write a comment"]',
-            
-            // Instagram - textarea
-            'textarea[placeholder*="Add a comment"]',
-            'textarea[aria-label*="Add a comment"]',
-            
-            // Threads - textarea and contenteditable
-            'textarea[placeholder*="Reply"]',
-            'textarea[aria-label*="Reply"]',
-            'div[contenteditable="true"][role="textbox"]',
-            
-            // YouTube - contenteditable
-            '#contenteditable-root[contenteditable="true"]',
-            'div[id="contenteditable-root"]',
-            
-            // TikTok - contenteditable
-            '[data-e2e="comment-input"]',
-            'div[contenteditable="true"][data-text="Add comment..."]',
             
             // Reddit - older comment boxes
             'shreddit-composer textarea',

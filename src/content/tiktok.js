@@ -135,9 +135,7 @@ const injectButton = (editor, type) => {
 
 const handleAutoFill = async (editor, type) => {
   try {
-    const api = typeof browser !== 'undefined' ? browser : chrome;
-    
-    const response = await api.runtime.sendMessage({
+    const response = await chrome.runtime.sendMessage({
       type: 'GET_CONTENT',
       contentType: type,
     });
@@ -155,7 +153,7 @@ const handleAutoFill = async (editor, type) => {
       const inputEvent = new Event('input', { bubbles: true });
       editor.dispatchEvent(inputEvent);
 
-      api.runtime.sendMessage({
+      chrome.runtime.sendMessage({
         type: 'TRACK_USAGE',
         platform: 'tiktok',
         contentType: type,
@@ -168,13 +166,10 @@ const handleAutoFill = async (editor, type) => {
   }
 };
 
-// Listen for messages from sidebar (Firefox compatible)
-const api = typeof browser !== 'undefined' ? browser : chrome;
-api.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('TikTok content script received message:', message.type);
+// Listen for messages from sidebar
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'GET_PAGE_CONTEXT') {
     const context = getTikTokVideoContext();
-    console.log('Responding with context:', context);
     sendResponse({ success: true, context });
     return true;
   }
