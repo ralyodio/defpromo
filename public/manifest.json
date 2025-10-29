@@ -12,17 +12,10 @@
   "host_permissions": [
     "https://twitter.com/*",
     "https://x.com/*",
-    "https://www.linkedin.com/*",
     "https://www.reddit.com/*",
-    "https://www.facebook.com/*",
-    "https://www.instagram.com/*",
-    "https://www.threads.net/*",
-    "https://www.youtube.com/*",
-    "https://www.tiktok.com/*",
     "https://stacker.news/*",
     "https://bsky.app/*",
     "https://*.bsky.social/*",
-    "https://primal.net/*",
     "https://*.slack.com/*",
     "https://discord.com/*",
     "https://web.telegram.org/*",
@@ -73,18 +66,8 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.linkedin.com/*"],
-      "js": ["content/content-linkedin.js"],
-      "run_at": "document_idle"
-    },
-    {
       "matches": ["https://www.reddit.com/*"],
       "js": ["content/content-reddit.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://www.facebook.com/*"],
-      "js": ["content/content-facebook.js"],
       "run_at": "document_idle"
     },
     {
@@ -95,11 +78,6 @@
     {
       "matches": ["https://bsky.app/*", "https://*.bsky.social/*"],
       "js": ["content/content-bluesky.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://primal.net/*"],
-      "js": ["content/content-primal.js"],
       "run_at": "document_idle"
     },
     {
@@ -115,26 +93,6 @@
     {
       "matches": ["https://web.telegram.org/*"],
       "js": ["content/content-telegram.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://www.tiktok.com/*"],
-      "js": ["content/content-tiktok.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://www.instagram.com/*"],
-      "js": ["content/content-instagram.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://www.threads.net/*"],
-      "js": ["content/content-threads.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://www.youtube.com/*"],
-      "js": ["content/content-youtube.js"],
       "run_at": "document_idle"
     }
   ],

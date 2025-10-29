@@ -58,18 +58,10 @@ const ContentView = ({ activeProject }) => {
       // Check if we're on a supported platform
       const isReddit = tab.url?.includes('reddit.com');
       const isTwitter = tab.url?.includes('twitter.com') || tab.url?.includes('x.com');
-      const isLinkedIn = tab.url?.includes('linkedin.com');
       const isBluesky = tab.url?.includes('bsky.app') || tab.url?.includes('bsky.social');
-      const isPrimal = tab.url?.includes('primal.net');
-      const isFacebook = tab.url?.includes('facebook.com');
-      const isInstagram = tab.url?.includes('instagram.com');
-      const isThreads = tab.url?.includes('threads.net');
-      const isYouTube = tab.url?.includes('youtube.com');
-      const isTikTok = tab.url?.includes('tiktok.com');
       
-      if (!isReddit && !isTwitter && !isLinkedIn && !isBluesky && !isPrimal && 
-          !isFacebook && !isInstagram && !isThreads && !isYouTube && !isTikTok) {
-        throw new Error(`Not on a supported page. Current URL: ${tab.url || 'unknown'}. Supported: Reddit, Twitter/X, LinkedIn, Bluesky, Primal, Facebook, Instagram, Threads, YouTube, TikTok`);
+      if (!isReddit && !isTwitter && !isBluesky) {
+        throw new Error(`Not on a supported page. Current URL: ${tab.url || 'unknown'}. Supported: Reddit, Twitter/X, Bluesky`);
       }
 
       console.log('Sending message to tab:', tab.id, tab.url);
@@ -77,7 +69,7 @@ const ContentView = ({ activeProject }) => {
       // Send message to content script with timeout
       const response = await Promise.race([
         api.tabs.sendMessage(tab.id, {
-          type: 'GET_PAGE_CONTEXT',
+        type: 'GET_PAGE_CONTEXT',
         }),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Timeout: Content script did not respond. Refresh the page and try again.')), 5000)
@@ -247,14 +239,7 @@ const ContentView = ({ activeProject }) => {
       let platform = 'unknown';
       if (url.includes('reddit.com')) platform = 'reddit';
       else if (url.includes('twitter.com') || url.includes('x.com')) platform = 'twitter';
-      else if (url.includes('linkedin.com')) platform = 'linkedin';
-      else if (url.includes('facebook.com')) platform = 'facebook';
-      else if (url.includes('instagram.com')) platform = 'instagram';
-      else if (url.includes('threads.net')) platform = 'threads';
-      else if (url.includes('youtube.com')) platform = 'youtube';
-      else if (url.includes('tiktok.com')) platform = 'tiktok';
       else if (url.includes('bsky.app') || url.includes('bsky.social')) platform = 'bluesky';
-      else if (url.includes('primal.net')) platform = 'primal';
       else if (url.includes('slack.com')) platform = 'slack';
       else if (url.includes('discord.com')) platform = 'discord';
       else if (url.includes('telegram.org')) platform = 'telegram';
@@ -400,39 +385,9 @@ const ContentView = ({ activeProject }) => {
             '[data-testid="tweetTextarea_0"]',
             'div[contenteditable="true"][role="textbox"][data-testid="tweetTextarea_0"]',
             
-            // LinkedIn - Quill editor
-            '.ql-editor[data-placeholder*="Start a post"]',
-            '.ql-editor[data-placeholder*="Add a comment"]',
-            '.ql-editor[contenteditable="true"]',
-            
             // Bluesky - contenteditable
             '[contenteditable="true"][data-testid="composerTextInput"]',
             '[contenteditable="true"][placeholder*="Write your reply"]',
-            
-            // Primal (Nostr)
-            'textarea[placeholder*="What\'s on your mind"]',
-            'textarea[placeholder*="Reply"]',
-            
-            // Facebook - contenteditable
-            '[contenteditable="true"][role="textbox"][aria-label*="What\'s on your mind"]',
-            '[contenteditable="true"][role="textbox"][aria-label*="Write a comment"]',
-            
-            // Instagram - textarea
-            'textarea[placeholder*="Add a comment"]',
-            'textarea[aria-label*="Add a comment"]',
-            
-            // Threads - textarea and contenteditable
-            'textarea[placeholder*="Reply"]',
-            'textarea[aria-label*="Reply"]',
-            'div[contenteditable="true"][role="textbox"]',
-            
-            // YouTube - contenteditable
-            '#contenteditable-root[contenteditable="true"]',
-            'div[id="contenteditable-root"]',
-            
-            // TikTok - contenteditable
-            '[data-e2e="comment-input"]',
-            'div[contenteditable="true"][data-text="Add comment..."]',
             
             // Reddit - older comment boxes
             'shreddit-composer textarea',
