@@ -97,6 +97,9 @@
     // Reddit markdown editor
     const markdownBoxes = document.querySelectorAll('textarea[slot="text-input"], textarea[name="markdown"]');
     
+    // Reddit rich text editor (Lexical/contenteditable)
+    const richTextBoxes = document.querySelectorAll('#contenteditable-root[contenteditable="true"]');
+    
     postBoxes.forEach((box) => {
       if (!box.dataset.defpromoInjected) {
         injectButton(box, 'post');
@@ -105,6 +108,14 @@
     });
 
     [...commentBoxes, ...replyBoxes, ...markdownBoxes].forEach((box) => {
+      if (!box.dataset.defpromoInjected) {
+        injectButton(box, 'comment');
+        box.dataset.defpromoInjected = 'true';
+      }
+    });
+
+    // Handle rich text editors
+    richTextBoxes.forEach((box) => {
       if (!box.dataset.defpromoInjected) {
         injectButton(box, 'comment');
         box.dataset.defpromoInjected = 'true';
@@ -157,7 +168,7 @@
     textarea.parentNode.insertBefore(buttonContainer, textarea.nextSibling);
   };
 
-  const handleAutoFill = async (textarea, type) => {
+  const handleAutoFill = async (element, type) => {
     try {
       const response = await api.runtime.sendMessage({
         type: 'GET_CONTENT',
@@ -165,11 +176,31 @@
       });
 
       if (response.success && response.content) {
-        textarea.value = response.content;
+        // Focus the element first
+        element.focus();
         
-        // Trigger input event
-        const inputEvent = new Event('input', { bubbles: true });
-        textarea.dispatchEvent(inputEvent);
+        // Check if it's a contenteditable element or a textarea
+        const isContentEditable = element.getAttribute('contenteditable') === 'true';
+        
+        if (isContentEditable) {
+          // For contenteditable elements (rich text editor)
+          element.textContent = response.content;
+          
+          // Trigger input event to update React/Lexical state
+          const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+          element.dispatchEvent(inputEvent);
+          
+          // Also trigger change event
+          const changeEvent = new Event('change', { bubbles: true });
+          element.dispatchEvent(changeEvent);
+        } else {
+          // For textarea elements (markdown editor)
+          element.value = response.content;
+          
+          // Trigger input event
+          const inputEvent = new Event('input', { bubbles: true });
+          element.dispatchEvent(inputEvent);
+        }
 
         // Track analytics
         api.runtime.sendMessage({
