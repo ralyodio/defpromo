@@ -179,44 +179,24 @@
         // Check if it's a contenteditable element or a textarea
         const isContentEditable = element.getAttribute('contenteditable') === 'true';
         
-        // Simulate user interaction by clicking the element
-        element.click();
-        
-        // Small delay to let Reddit's UI update
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Focus the element
+        // Focus first
         element.focus();
         
-        // Small delay after focus
-        await new Promise(resolve => setTimeout(resolve, 50));
-        
         if (isContentEditable) {
-          // For contenteditable elements (rich text editor)
+          // For contenteditable elements (rich text editor) - use textContent
           element.textContent = response.content;
           
-          // Trigger input event to update React/Lexical state
-          const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+          // Trigger input event
+          const inputEvent = new Event('input', { bubbles: true });
           element.dispatchEvent(inputEvent);
-          
-          // Also trigger change event
-          const changeEvent = new Event('change', { bubbles: true });
-          element.dispatchEvent(changeEvent);
         } else {
-          // For textarea elements (markdown editor)
+          // For textarea elements (markdown editor) - use value
           element.value = response.content;
           
           // Trigger input event
           const inputEvent = new Event('input', { bubbles: true });
           element.dispatchEvent(inputEvent);
-          
-          // Trigger change event
-          const changeEvent = new Event('change', { bubbles: true });
-          element.dispatchEvent(changeEvent);
         }
-        
-        // Re-focus to ensure visibility
-        element.focus();
 
         // Track analytics
         api.runtime.sendMessage({
