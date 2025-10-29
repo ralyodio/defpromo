@@ -46,7 +46,7 @@ const ContentView = ({ activeProject }) => {
       console.log('Query result:', tabs);
       
       if (!tabs || tabs.length === 0) {
-        throw new Error('No active tab found. Make sure you have a Reddit tab open.');
+        throw new Error('No active tab found. Make sure you have a supported page open.');
       }
 
       const tab = tabs[0];
@@ -55,17 +55,25 @@ const ContentView = ({ activeProject }) => {
         throw new Error('Tab has no ID');
       }
 
-      // Check if we're on Reddit
-      if (!tab.url?.includes('reddit.com')) {
-        throw new Error(`Not on a Reddit page. Current URL: ${tab.url || 'unknown'}`);
+      // Check if we're on a supported platform
+      const isReddit = tab.url?.includes('reddit.com');
+      const isTwitter = tab.url?.includes('twitter.com') || tab.url?.includes('x.com');
+      
+      if (!isReddit && !isTwitter) {
+        throw new Error(`Not on a supported page. Current URL: ${tab.url || 'unknown'}. Supported: Reddit, Twitter/X`);
       }
 
       console.log('Sending message to tab:', tab.id, tab.url);
 
-      // Send message to content script to get page context
-      const response = await api.tabs.sendMessage(tab.id, {
-        type: 'GET_PAGE_CONTEXT',
-      });
+      // Send message to content script with timeout
+      const response = await Promise.race([
+        api.tabs.sendMessage(tab.id, {
+          type: 'GET_PAGE_CONTEXT',
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout: Content script did not respond. Refresh the page and try again.')), 5000)
+        )
+      ]);
 
       console.log('Received response:', response);
 
@@ -291,14 +299,46 @@ const ContentView = ({ activeProject }) => {
                 }
               } else {
                 // For other contenteditable elements (Twitter/X, etc.)
-                element.innerHTML = '';
-                element.textContent = text;
+                element.focus();
                 
-                // Trigger events
-                element.dispatchEvent(new Event('input', { bubbles: true }));
-                element.dispatchEvent(new Event('change', { bubbles: true }));
-                element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
-                element.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+                // Best approach: Use execCommand which React editors handle well
+                try {
+                  // Select all existing content
+                  const selection = window.getSelection();
+                  const range = document.createRange();
+                  range.selectNodeContents(element);
+                  selection.removeAllRanges();
+                  selection.addRange(range);
+                  
+                  // Use execCommand to insert text (works with most React editors)
+                  const success = document.execCommand('insertText', false, text);
+                  
+                  if (success) {
+                    return true;
+                  }
+                } catch (e) {
+                  console.log('execCommand failed:', e);
+                }
+                
+                // Fallback: Try clipboard paste event (Twitter should handle this)
+                try {
+                  element.focus();
+                  
+                  // Create clipboard data
+                  const clipboardData = new DataTransfer();
+                  clipboardData.setData('text/plain', text);
+                  
+                  const pasteEvent = new ClipboardEvent('paste', {
+                    bubbles: true,
+                    cancelable: true,
+                    clipboardData: clipboardData
+                  });
+                  
+                  element.dispatchEvent(pasteEvent);
+                  return true;
+                } catch (e) {
+                  console.log('Clipboard paste failed:', e);
+                }
               }
               
               return true;
@@ -319,10 +359,15 @@ const ContentView = ({ activeProject }) => {
 
           // Priority selectors for specific platforms
           const prioritySelectors = [
-            // Reddit - new Lexical editor
+            // Reddit - new Lexical editor (rich text mode)
             'div[slot="rte"][data-lexical-editor="true"][contenteditable="true"]',
             'div[name="body"][data-lexical-editor="true"][contenteditable="true"]',
             'div[contenteditable="true"][data-lexical-editor="true"]',
+            
+            // Reddit - Markdown editor mode
+            'textarea[slot="text-input"]',
+            'textarea[name="markdown"]',
+            'faceplate-textarea[name="markdown"] textarea',
             
             // Twitter/X - main tweet box
             '[data-testid="tweetTextarea_0"]',

@@ -1,4 +1,7 @@
 // Twitter/X content script
+(function() {
+  'use strict';
+  
 console.log('DefPromo: Twitter content script loaded');
 
 /**
@@ -9,29 +12,40 @@ const getTwitterPostContext = () => {
     let title = '';
     let content = '';
     
-    // Get the main tweet content from article element
-    const tweetArticle = document.querySelector('article[data-testid="tweet"]');
+    // Try to get the main tweet content (the tweet being replied to)
+    // Look for article with role="article" and tabindex="-1" (main tweet)
+    const tweetArticles = document.querySelectorAll('article[data-testid="tweet"]');
     
-    if (tweetArticle) {
-      // Extract tweet text content
-      const tweetTextElement = tweetArticle.querySelector('[data-testid="tweetText"]');
+    if (tweetArticles.length > 0) {
+      // First tweet is usually the one being replied to
+      const mainTweet = tweetArticles[0];
+      
+      // Get author name
+      const authorElement = mainTweet.querySelector('[data-testid="User-Name"]');
+      if (authorElement) {
+        title = authorElement.textContent?.trim() || '';
+      }
+      
+      // Get tweet text
+      const tweetTextElement = mainTweet.querySelector('[data-testid="tweetText"]');
       if (tweetTextElement) {
         content = tweetTextElement.textContent?.trim() || '';
       }
       
-      // Extract author name for context
-      const authorElement = tweetArticle.querySelector('[data-testid="User-Name"]');
-      if (authorElement) {
-        const authorName = authorElement.textContent?.trim() || '';
-        title = `Tweet by ${authorName}`;
+      // If no content, try lang attribute div
+      if (!content) {
+        const langDiv = mainTweet.querySelector('div[lang]');
+        if (langDiv) {
+          content = langDiv.textContent?.trim() || '';
+        }
       }
     }
     
-    // Fallback: try to get from any visible tweet text
+    // Fallback: Get any visible tweet text
     if (!content) {
-      const tweetTexts = document.querySelectorAll('[data-testid="tweetText"]');
-      if (tweetTexts.length > 0) {
-        content = tweetTexts[0].textContent?.trim() || '';
+      const tweetText = document.querySelector('[data-testid="tweetText"]');
+      if (tweetText) {
+        content = tweetText.textContent?.trim() || '';
       }
     }
     
@@ -51,10 +65,7 @@ const getTwitterPostContext = () => {
       title = document.title || window.location.href;
     }
 
-    console.log('Extracted Twitter context:', {
-      title: title.substring(0, 50) + '...',
-      content: content.substring(0, 100) + '...'
-    });
+    console.log('Extracted context:', { title, content: content.substring(0, 100) + '...' });
 
     return {
       title: title.trim(),
@@ -148,8 +159,10 @@ const injectButton = (textarea, type) => {
 
 const handleAutoFill = async (textarea, type) => {
   try {
+    const api = typeof browser !== 'undefined' ? browser : chrome;
+    
     // Request content from background script
-    const response = await chrome.runtime.sendMessage({
+    const response = await api.runtime.sendMessage({
       type: 'GET_CONTENT',
       contentType: type,
     });
@@ -164,7 +177,7 @@ const handleAutoFill = async (textarea, type) => {
       textarea.dispatchEvent(inputEvent);
 
       // Track analytics
-      chrome.runtime.sendMessage({
+      api.runtime.sendMessage({
         type: 'TRACK_USAGE',
         platform: 'twitter',
         contentType: type,
@@ -177,10 +190,13 @@ const handleAutoFill = async (textarea, type) => {
   }
 };
 
-// Listen for messages from sidebar
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+// Listen for messages from sidebar (Firefox compatible)
+const api = typeof browser !== 'undefined' ? browser : chrome;
+api.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Twitter content script received message:', message.type);
   if (message.type === 'GET_PAGE_CONTEXT') {
     const context = getTwitterPostContext();
+    console.log('Responding with context:', context);
     sendResponse({ success: true, context });
     return true;
   }
@@ -192,3 +208,5 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+
+})();
