@@ -132,68 +132,82 @@
   };
 
   const checkForForms = () => {
-    // Primal uses textarea for Nostr posts
-    const postBoxes = document.querySelectorAll('textarea[placeholder*="What\'s on your mind"]');
-    const replyBoxes = document.querySelectorAll('textarea[placeholder*="Reply"]');
+    // Primal uses textarea for Nostr posts - multiple selectors for different contexts
+    const textareas = document.querySelectorAll(`
+      textarea[placeholder*="What's on your mind"],
+      textarea[placeholder*="Reply"],
+      textarea[id*="new_note_text_area"],
+      textarea[id*="reply"],
+      ._newNote_sbubx_1 textarea,
+      ._noteEditBox_1pmle_1 textarea
+    `.trim().split(',').map(s => s.trim()).join(','));
     
-    postBoxes.forEach((box) => {
+    console.log('Primal: Found', textareas.length, 'textareas');
+    
+    textareas.forEach((box) => {
       if (!box.dataset.defpromoInjected) {
-        injectButton(box, 'post');
-        box.dataset.defpromoInjected = 'true';
-      }
-    });
-
-    replyBoxes.forEach((box) => {
-      if (!box.dataset.defpromoInjected) {
-        injectButton(box, 'comment');
+        // Determine type based on ID or context
+        const isReply = box.id?.includes('reply') || box.closest('[id*="reply"]');
+        const type = isReply ? 'comment' : 'post';
+        console.log('Primal: Injecting button for', type, 'textarea:', box.id);
+        injectButton(box, type);
         box.dataset.defpromoInjected = 'true';
       }
     });
   };
 
   const injectButton = (textarea, type) => {
-    const container = textarea.closest('form') || textarea.parentElement;
+    // Try to find the editor controls container first
+    const editorControls = textarea.closest('._noteEditBox_1pmle_1')?.querySelector('._editorDescision_1pmle_117');
+    const container = editorControls || textarea.closest('form') || textarea.parentElement;
     
-    if (!container) return;
-
-    const buttonContainer = document.createElement('div');
-    buttonContainer.style.cssText = 'margin: 8px 0;';
+    if (!container) {
+      console.log('Primal: No container found for button injection');
+      return;
+    }
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'defpromo-btn';
+    button.className = 'defpromo-btn _secondary_1meo7_19'; // Use Primal's secondary button style
     button.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style="display: inline-block; margin-right: 4px;">
         <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
       </svg>
-      Fill with DefPromo
+      DefPromo
     `;
     button.style.cssText = `
-      background: #0ea5e9;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 8px 16px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
       display: inline-flex;
       align-items: center;
+      gap: 4px;
+      margin-right: 8px;
     `;
 
     button.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
+      console.log('Primal: DefPromo button clicked');
       await handleAutoFill(textarea, type);
     });
 
-    buttonContainer.appendChild(button);
-    textarea.parentNode.insertBefore(buttonContainer, textarea.nextSibling);
+    // If we found the editor controls, insert at the beginning
+    if (editorControls) {
+      editorControls.insertBefore(button, editorControls.firstChild);
+      console.log('Primal: Button injected into editor controls');
+    } else {
+      // Fallback: insert after textarea
+      const buttonContainer = document.createElement('div');
+      buttonContainer.style.cssText = 'margin: 8px 0;';
+      buttonContainer.appendChild(button);
+      textarea.parentNode.insertBefore(buttonContainer, textarea.nextSibling);
+      console.log('Primal: Button injected as fallback');
+    }
   };
 
   const handleAutoFill = async (textarea, type) => {
     try {
       const localApi = typeof browser !== 'undefined' ? browser : chrome;
+      
+      console.log('Primal: Requesting content for', type);
       
       const response = await localApi.runtime.sendMessage({
         type: 'GET_CONTENT',
@@ -201,11 +215,30 @@
       });
 
       if (response.success && response.content) {
+        console.log('Primal: Received content, filling textarea');
+        
+        // Focus the textarea
         textarea.focus();
+        
+        // Set the value
         textarea.value = response.content;
         
-        const inputEvent = new Event('input', { bubbles: true });
+        // Trigger input events to update Primal's internal state
+        const inputEvent = new Event('input', { bubbles: true, cancelable: true });
         textarea.dispatchEvent(inputEvent);
+        
+        const changeEvent = new Event('change', { bubbles: true });
+        textarea.dispatchEvent(changeEvent);
+        
+        // Try to enable the Post button
+        const postButton = textarea.closest('._noteEditBox_1pmle_1')?.querySelector('._primary_1meo7_1');
+        if (postButton) {
+          postButton.removeAttribute('disabled');
+          postButton.removeAttribute('data-disabled');
+          console.log('Primal: Post button enabled');
+        }
+        
+        console.log('Primal: Textarea filled successfully');
 
         localApi.runtime.sendMessage({
           type: 'TRACK_USAGE',
@@ -214,9 +247,11 @@
           contentId: response.contentId,
           variationId: response.variationId,
         });
+      } else {
+        console.error('Primal: Failed to get content', response);
       }
     } catch (error) {
-      console.error('Auto-fill error:', error);
+      console.error('Primal: Auto-fill error:', error);
     }
   };
 
