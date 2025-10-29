@@ -2,6 +2,55 @@
 console.log('DefPromo: Facebook content script loaded');
 
 /**
+ * Extract Facebook post context for AI generation
+ */
+const getFacebookPostContext = () => {
+  try {
+    let title = '';
+    let content = '';
+    
+    // Try to get post content from feed
+    const postElements = document.querySelectorAll('[data-ad-preview="message"]');
+    if (postElements.length > 0) {
+      const firstPost = postElements[0];
+      content = firstPost.textContent?.trim() || '';
+    }
+    
+    // Alternative: Look for post text in various containers
+    if (!content) {
+      const altPost = document.querySelector('[data-ad-comet-preview="message"]') ||
+                     document.querySelector('[dir="auto"][style*="text-align"]');
+      if (altPost) {
+        content = altPost.textContent?.trim() || '';
+      }
+    }
+    
+    // Get author name for title
+    const authorElement = document.querySelector('strong a[role="link"]') ||
+                         document.querySelector('h2 a') ||
+                         document.querySelector('h3 a');
+    if (authorElement) {
+      title = authorElement.textContent?.trim() || '';
+    }
+    
+    // If still no title, use page title
+    if (!title) {
+      title = document.title || window.location.href;
+    }
+
+    console.log('Extracted Facebook context:', { title, content: content.substring(0, 100) + '...' });
+
+    return {
+      title: title.trim(),
+      content: content.trim().substring(0, 1000) // Limit to 1000 chars
+    };
+  } catch (error) {
+    console.error('Failed to extract Facebook post context:', error);
+    return { title: '', content: '' };
+  }
+};
+
+/**
  * Detect Facebook post/comment forms and inject auto-fill button
  */
 
@@ -82,7 +131,9 @@ const injectButton = (editor, type) => {
 
 const handleAutoFill = async (editor, type) => {
   try {
-    const response = await chrome.runtime.sendMessage({
+    const api = typeof browser !== 'undefined' ? browser : chrome;
+    
+    const response = await api.runtime.sendMessage({
       type: 'GET_CONTENT',
       contentType: type,
     });
@@ -94,7 +145,7 @@ const handleAutoFill = async (editor, type) => {
       const inputEvent = new Event('input', { bubbles: true });
       editor.dispatchEvent(inputEvent);
 
-      chrome.runtime.sendMessage({
+      api.runtime.sendMessage({
         type: 'TRACK_USAGE',
         platform: 'facebook',
         contentType: type,
@@ -106,6 +157,18 @@ const handleAutoFill = async (editor, type) => {
     console.error('Auto-fill error:', error);
   }
 };
+
+// Listen for messages from sidebar (Firefox compatible)
+const api = typeof browser !== 'undefined' ? browser : chrome;
+api.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Facebook content script received message:', message.type);
+  if (message.type === 'GET_PAGE_CONTEXT') {
+    const context = getFacebookPostContext();
+    console.log('Responding with context:', context);
+    sendResponse({ success: true, context });
+    return true;
+  }
+});
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
