@@ -24,43 +24,71 @@
       let title = '';
       let content = '';
       
-      // Try to get post content from feed
-      const postElements = document.querySelectorAll('[data-testid="postText"]');
-      if (postElements.length > 0) {
-        const firstPost = postElements[0];
-        content = firstPost.textContent?.trim() || '';
+      console.log('Extracting Bluesky post context...');
+      
+      // Try to get the main post content
+      // Bluesky uses data-word-wrap="1" for post text content
+      const postTextElements = document.querySelectorAll('[data-word-wrap="1"]');
+      console.log('Found post text elements:', postTextElements.length);
+      
+      if (postTextElements.length > 0) {
+        // Get the first substantial post text (not a reply prompt)
+        for (const element of postTextElements) {
+          const text = element.textContent?.trim();
+          if (text && text.length > 10 && !text.includes('Write your reply')) {
+            content = text;
+            console.log('Found post content:', content.substring(0, 100));
+            break;
+          }
+        }
         
-        // Get author name as title
-        const authorElement = firstPost.closest('[data-testid="feedItem"]')?.querySelector('[data-testid="authorName"]');
-        if (authorElement) {
-          title = authorElement.textContent?.trim() || '';
+        // Try to get author name from the post
+        if (content) {
+          // Look for author name near the content
+          const postContainer = postTextElements[0].closest('[data-testid*="postThreadItem"]') || 
+                               postTextElements[0].closest('[role="link"]')?.parentElement;
+          
+          if (postContainer) {
+            // Find author link
+            const authorLink = postContainer.querySelector('a[href^="/profile/"]');
+            if (authorLink) {
+              const authorText = authorLink.textContent?.trim();
+              if (authorText && !authorText.startsWith('@')) {
+                title = authorText;
+                console.log('Found author:', title);
+              }
+            }
+          }
         }
       }
       
-      // Fallback: Try alternative selectors
+      // Fallback: Try to find any substantial text content
       if (!content) {
-        // Look for contenteditable divs with content
-        const contentDivs = document.querySelectorAll('[contenteditable="false"]');
-        for (const div of contentDivs) {
+        console.log('Using fallback content extraction');
+        const textDivs = document.querySelectorAll('div[dir="auto"]');
+        for (const div of textDivs) {
           const text = div.textContent?.trim();
-          if (text && text.length > 50) {
+          if (text && text.length > 50 && !text.includes('Write your reply') && !text.includes('Add a comment')) {
             content = text;
+            console.log('Found fallback content:', content.substring(0, 100));
             break;
           }
         }
       }
       
-      // If still no title, use page title
+      // If still no title, use page title or URL
       if (!title) {
         title = document.title || window.location.href;
+        console.log('Using fallback title:', title);
       }
 
-      console.log('Extracted Bluesky context:', { title, content: content.substring(0, 100) + '...' });
-
-      return {
+      const result = {
         title: title.trim(),
         content: content.trim().substring(0, 1000) // Limit to 1000 chars
       };
+      
+      console.log('Final extracted context:', result);
+      return result;
     } catch (error) {
       console.error('Failed to extract Bluesky post context:', error);
       return { title: '', content: '' };
