@@ -11,13 +11,13 @@ const getPrimalPostContext = () => {
     
     console.log('Extracting Primal/Nostr post context...');
     
-    // Try to get post content from feed - Primal uses class-based selectors
+    // Try to get post content from feed - Primal uses specific class names
     const postSelectors = [
-      '[class*="noteContent"]',
-      '[class*="note_content"]',
-      '[class*="NoteContent"]',
-      'div[class*="post"] p',
-      'article p'
+      '._parsedNote_2lzd7_1',  // Main post content class
+      '[id^="note_"]',          // Posts have id starting with "note_"
+      '._message_ar7o5_64',     // Message container class
+      'div[class*="parsedNote"]',
+      'div[class*="noteContent"]'
     ];
     
     for (const selector of postSelectors) {
@@ -27,17 +27,23 @@ const getPrimalPostContext = () => {
       if (postElements.length > 0) {
         for (const post of postElements) {
           const text = post.textContent?.trim();
-          if (text && text.length > 10 && !text.includes('Reply') && !text.includes('What\'s on your mind')) {
-            content = text;
+          // Primal uses multiple spaces between words, normalize them
+          const cleanText = text?.replace(/\s+/g, ' ').trim();
+          if (cleanText && cleanText.length > 10 && !cleanText.includes('Reply') && !cleanText.includes('What\'s on your mind')) {
+            content = cleanText;
             console.log('Found post content:', content.substring(0, 100));
             
-            // Get author name as title
-            const parentNote = post.closest('[class*="note"]') || post.closest('article');
+            // Get author name as title - look for username classes
+            const parentNote = post.closest('[class*="note"]') || 
+                               post.closest('[data-event]') ||
+                               post.closest('._notePrimary_ar7o5_478');
+            
             if (parentNote) {
               const authorSelectors = [
-                '[class*="userName"]',
-                '[class*="username"]',
-                '[class*="author"]'
+                '._userName_ar7o5_364',    // Primary username class
+                '._userName_p3s0n_50',     // Alternative username class
+                '[class*="_userName"]',    // Any username class
+                '[class*="userName"]'      // Generic username class
               ];
               
               for (const authSelector of authorSelectors) {
