@@ -9,41 +9,83 @@ const getFacebookPostContext = () => {
     let title = '';
     let content = '';
     
-    // Try to get post content from feed
-    const postElements = document.querySelectorAll('[data-ad-preview="message"]');
-    if (postElements.length > 0) {
-      const firstPost = postElements[0];
-      content = firstPost.textContent?.trim() || '';
-    }
+    console.log('Extracting Facebook post context...');
     
-    // Alternative: Look for post text in various containers
-    if (!content) {
-      const altPost = document.querySelector('[data-ad-comet-preview="message"]') ||
-                     document.querySelector('[dir="auto"][style*="text-align"]');
-      if (altPost) {
-        content = altPost.textContent?.trim() || '';
+    // Facebook uses multiple selectors across different layouts
+    const postSelectors = [
+      '[data-ad-preview="message"]',
+      '[data-ad-comet-preview="message"]',
+      '[dir="auto"][style*="text-align"]',
+      'div[data-ad-rendering-role="story_message"]',
+      '[role="article"] [dir="auto"]'
+    ];
+    
+    for (const selector of postSelectors) {
+      const postElements = document.querySelectorAll(selector);
+      console.log(`Found ${postElements.length} elements with selector: ${selector}`);
+      
+      if (postElements.length > 0) {
+        for (const post of postElements) {
+          const text = post.textContent?.trim();
+          if (text && text.length > 10 && !text.includes('What\'s on your mind')) {
+            content = text;
+            console.log('Found post content:', content.substring(0, 100));
+            break;
+          }
+        }
+        if (content) break;
       }
     }
     
     // Get author name for title
-    const authorElement = document.querySelector('strong a[role="link"]') ||
-                         document.querySelector('h2 a') ||
-                         document.querySelector('h3 a');
-    if (authorElement) {
-      title = authorElement.textContent?.trim() || '';
+    console.log('Looking for author name...');
+    const authorSelectors = [
+      'strong a[role="link"]',
+      'h2 a',
+      'h3 a',
+      'a[aria-label*="profile"]',
+      'span[dir="auto"] a[role="link"]'
+    ];
+    
+    for (const selector of authorSelectors) {
+      const authorElement = document.querySelector(selector);
+      if (authorElement) {
+        const authorText = authorElement.textContent?.trim();
+        if (authorText && authorText.length > 0 && authorText.length < 100) {
+          title = authorText;
+          console.log('Found author:', title);
+          break;
+        }
+      }
+    }
+    
+    // Fallback: Look for any substantial text content
+    if (!content) {
+      console.log('Using fallback content extraction');
+      const textDivs = document.querySelectorAll('div[dir="auto"]');
+      for (const div of textDivs) {
+        const text = div.textContent?.trim();
+        if (text && text.length > 50 && !text.includes('Write a comment')) {
+          content = text;
+          console.log('Found fallback content:', content.substring(0, 100));
+          break;
+        }
+      }
     }
     
     // If still no title, use page title
     if (!title) {
       title = document.title || window.location.href;
+      console.log('Using fallback title:', title);
     }
 
-    console.log('Extracted Facebook context:', { title, content: content.substring(0, 100) + '...' });
-
-    return {
+    const result = {
       title: title.trim(),
       content: content.trim().substring(0, 1000) // Limit to 1000 chars
     };
+    
+    console.log('Final extracted context:', result);
+    return result;
   } catch (error) {
     console.error('Failed to extract Facebook post context:', error);
     return { title: '', content: '' };

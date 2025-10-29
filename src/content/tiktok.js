@@ -9,44 +9,81 @@ const getTikTokVideoContext = () => {
     let title = '';
     let content = '';
     
-    // Get video description/caption
-    const captionElement = document.querySelector('[data-e2e="browse-video-desc"]') ||
-                          document.querySelector('[data-e2e="video-desc"]');
-    if (captionElement) {
-      content = captionElement.textContent?.trim() || '';
+    console.log('Extracting TikTok video context...');
+    
+    // Get video description/caption - TikTok uses data-e2e attributes
+    const captionSelectors = [
+      '[data-e2e="browse-video-desc"]',
+      '[data-e2e="video-desc"]',
+      '[data-e2e="search-video-desc"]',
+      '.tiktok-j2a19r-SpanText',
+      '[class*="DivContainer"]'
+    ];
+    
+    for (const selector of captionSelectors) {
+      const captionElements = document.querySelectorAll(selector);
+      console.log(`Found ${captionElements.length} elements with selector: ${selector}`);
+      
+      if (captionElements.length > 0) {
+        for (const caption of captionElements) {
+          const text = caption.textContent?.trim();
+          if (text && text.length > 10 && !text.includes('Add comment')) {
+            content = text;
+            console.log('Found caption:', content.substring(0, 100));
+            break;
+          }
+        }
+        if (content) break;
+      }
     }
     
     // Get author username for context
-    const authorElement = document.querySelector('[data-e2e="browse-username"]') ||
-                         document.querySelector('[data-e2e="video-author-uniqueid"]');
-    if (authorElement) {
-      const authorName = authorElement.textContent?.trim() || '';
-      title = `TikTok by ${authorName}`;
+    console.log('Looking for author username...');
+    const authorSelectors = [
+      '[data-e2e="browse-username"]',
+      '[data-e2e="video-author-uniqueid"]',
+      '[data-e2e="search-card-user-link"]'
+    ];
+    
+    for (const selector of authorSelectors) {
+      const authorElement = document.querySelector(selector);
+      if (authorElement) {
+        const authorName = authorElement.textContent?.trim() || '';
+        if (authorName && authorName.length > 0 && authorName.length < 50) {
+          title = `TikTok by ${authorName}`;
+          console.log('Found author:', authorName);
+          break;
+        }
+      }
     }
     
-    // Fallback: try alternative selectors
+    // Fallback: Look for any substantial text
     if (!content) {
-      const altCaption = document.querySelector('.tiktok-j2a19r-SpanText') ||
-                        document.querySelector('[class*="DivContainer"]');
-      if (altCaption) {
-        content = altCaption.textContent?.trim() || '';
+      console.log('Using fallback content extraction');
+      const spans = document.querySelectorAll('span[class*="SpanText"]');
+      for (const span of spans) {
+        const text = span.textContent?.trim();
+        if (text && text.length > 50 && !text.includes('Add comment')) {
+          content = text;
+          console.log('Found fallback content:', content.substring(0, 100));
+          break;
+        }
       }
     }
     
     // If still no title, use page title or URL
     if (!title) {
       title = document.title || window.location.href;
+      console.log('Using fallback title:', title);
     }
 
-    console.log('Extracted TikTok context:', {
-      title: title.substring(0, 50) + '...',
-      content: content.substring(0, 100) + '...'
-    });
-
-    return {
+    const result = {
       title: title.trim(),
       content: content.trim().substring(0, 1000) // Limit to 1000 chars
     };
+    
+    console.log('Final extracted context:', result);
+    return result;
   } catch (error) {
     console.error('Failed to extract TikTok video context:', error);
     return { title: '', content: '' };

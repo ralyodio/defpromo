@@ -9,38 +9,82 @@ const getLinkedInPostContext = () => {
     let title = '';
     let content = '';
     
-    // Try to get post content from feed
-    const postElements = document.querySelectorAll('[data-id*="urn:li:activity"] .feed-shared-update-v2__description');
-    if (postElements.length > 0) {
-      const firstPost = postElements[0];
-      content = firstPost.textContent?.trim() || '';
+    console.log('Extracting LinkedIn post context...');
+    
+    // Try to get post content from feed - LinkedIn uses various class structures
+    const postSelectors = [
+      '[data-id*="urn:li:activity"] .feed-shared-update-v2__description',
+      '.feed-shared-update-v2__description-wrapper',
+      '.feed-shared-inline-show-more-text',
+      '[data-test-id="main-feed-activity-card__commentary"]'
+    ];
+    
+    for (const selector of postSelectors) {
+      const postElements = document.querySelectorAll(selector);
+      console.log(`Found ${postElements.length} elements with selector: ${selector}`);
       
-      // Get author name as title
-      const authorElement = firstPost.closest('[data-id*="urn:li:activity"]')?.querySelector('.update-components-actor__name');
-      if (authorElement) {
-        title = authorElement.textContent?.trim() || '';
+      if (postElements.length > 0) {
+        const firstPost = postElements[0];
+        const text = firstPost.textContent?.trim();
+        if (text && text.length > 10) {
+          content = text;
+          console.log('Found post content:', content.substring(0, 100));
+          
+          // Get author name as title
+          const authorElement = firstPost.closest('[data-id*="urn:li:activity"]')?.querySelector('.update-components-actor__name') ||
+                               firstPost.closest('div[class*="feed"]')?.querySelector('span[dir="ltr"]') ||
+                               firstPost.closest('article')?.querySelector('a[href*="/in/"]');
+          if (authorElement) {
+            title = authorElement.textContent?.trim() || '';
+            console.log('Found author:', title);
+          }
+          break;
+        }
       }
     }
     
     // Fallback: Get from article page
     if (!content) {
-      const articleContent = document.querySelector('.article-content');
+      console.log('Using fallback content extraction for articles');
+      const articleContent = document.querySelector('.article-content') ||
+                            document.querySelector('article[role="main"]') ||
+                            document.querySelector('.reader-article-content');
       if (articleContent) {
         content = articleContent.textContent?.trim() || '';
+        console.log('Found article content:', content.substring(0, 100));
+      }
+    }
+    
+    // Additional fallback: Look for any substantial text in main content area
+    if (!content) {
+      console.log('Using deep fallback for any substantial text');
+      const mainContent = document.querySelector('main') || document.querySelector('[role="main"]');
+      if (mainContent) {
+        const textElements = mainContent.querySelectorAll('span[dir="ltr"], div[dir="ltr"]');
+        for (const el of textElements) {
+          const text = el.textContent?.trim();
+          if (text && text.length > 50) {
+            content = text;
+            console.log('Found fallback content:', content.substring(0, 100));
+            break;
+          }
+        }
       }
     }
     
     // If still no title, use page title
     if (!title) {
       title = document.title || window.location.href;
+      console.log('Using fallback title:', title);
     }
 
-    console.log('Extracted LinkedIn context:', { title, content: content.substring(0, 100) + '...' });
-
-    return {
+    const result = {
       title: title.trim(),
       content: content.trim().substring(0, 1000) // Limit to 1000 chars
     };
+    
+    console.log('Final extracted context:', result);
+    return result;
   } catch (error) {
     console.error('Failed to extract LinkedIn post context:', error);
     return { title: '', content: '' };

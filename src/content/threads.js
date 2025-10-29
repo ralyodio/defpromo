@@ -9,49 +9,87 @@ const getThreadsPostContext = () => {
     let title = '';
     let content = '';
     
+    console.log('Extracting Threads post context...');
+    
     // Get post content - Threads uses similar structure to Instagram
     const postElement = document.querySelector('[role="article"]') ||
                        document.querySelector('article');
     
+    console.log('Found post element:', !!postElement);
+    
     if (postElement) {
-      // Extract post text content
-      const textElement = postElement.querySelector('span[dir="auto"]') ||
-                         postElement.querySelector('[class*="Text"]');
-      if (textElement) {
-        content = textElement.textContent?.trim() || '';
+      // Extract post text content - try multiple selectors
+      const textSelectors = [
+        'span[dir="auto"]',
+        '[class*="Text"]',
+        'div[class*="TextContent"]'
+      ];
+      
+      for (const selector of textSelectors) {
+        const textElements = postElement.querySelectorAll(selector);
+        console.log(`Found ${textElements.length} text elements with selector: ${selector}`);
+        
+        if (textElements.length > 0) {
+          for (const textElement of textElements) {
+            const text = textElement.textContent?.trim();
+            if (text && text.length > 10 && !text.includes('Reply')) {
+              content = text;
+              console.log('Found post content:', content.substring(0, 100));
+              break;
+            }
+          }
+          if (content) break;
+        }
       }
       
       // Extract author name for context
-      const authorElement = postElement.querySelector('a[role="link"]') ||
-                           postElement.querySelector('[class*="Username"]');
-      if (authorElement) {
-        const authorName = authorElement.textContent?.trim() || '';
-        title = `Threads post by ${authorName}`;
+      console.log('Looking for author...');
+      const authorSelectors = [
+        'a[role="link"]',
+        '[class*="Username"]',
+        'a[href*="/@"]'
+      ];
+      
+      for (const selector of authorSelectors) {
+        const authorElement = postElement.querySelector(selector);
+        if (authorElement) {
+          const authorName = authorElement.textContent?.trim() || '';
+          if (authorName && authorName.length > 0 && authorName.length < 50) {
+            title = `Threads post by ${authorName}`;
+            console.log('Found author:', authorName);
+            break;
+          }
+        }
       }
     }
     
     // Fallback: try to get any visible post text
     if (!content) {
+      console.log('Using fallback content extraction');
       const textElements = document.querySelectorAll('span[dir="auto"]');
-      if (textElements.length > 0) {
-        content = textElements[0].textContent?.trim() || '';
+      for (const element of textElements) {
+        const text = element.textContent?.trim();
+        if (text && text.length > 50 && !text.includes('Reply')) {
+          content = text;
+          console.log('Found fallback content:', content.substring(0, 100));
+          break;
+        }
       }
     }
     
     // If still no title, use page title or URL
     if (!title) {
       title = document.title || window.location.href;
+      console.log('Using fallback title:', title);
     }
 
-    console.log('Extracted Threads context:', {
-      title: title.substring(0, 50) + '...',
-      content: content.substring(0, 100) + '...'
-    });
-
-    return {
+    const result = {
       title: title.trim(),
       content: content.trim().substring(0, 1000) // Limit to 1000 chars
     };
+    
+    console.log('Final extracted context:', result);
+    return result;
   } catch (error) {
     console.error('Failed to extract Threads post context:', error);
     return { title: '', content: '' };

@@ -9,44 +9,84 @@ const getInstagramPostContext = () => {
     let title = '';
     let content = '';
     
-    // Get post caption
-    const captionElement = document.querySelector('h1._ap3a._aaco._aacu._aacx._aad7._aade') ||
-                          document.querySelector('span._ap3a._aaco._aacu._aacx._aad6._aade') ||
-                          document.querySelector('[class*="Caption"]');
-    if (captionElement) {
-      content = captionElement.textContent?.trim() || '';
+    console.log('Extracting Instagram post context...');
+    
+    // Get post caption - Instagram frequently changes their class names
+    const captionSelectors = [
+      'h1._ap3a._aaco._aacu._aacx._aad7._aade',
+      'span._ap3a._aaco._aacu._aacx._aad6._aade',
+      '[class*="Caption"]',
+      'article span[dir="auto"]',
+      'div[class*="Caption"] span'
+    ];
+    
+    for (const selector of captionSelectors) {
+      const captionElements = document.querySelectorAll(selector);
+      console.log(`Found ${captionElements.length} elements with selector: ${selector}`);
+      
+      if (captionElements.length > 0) {
+        for (const caption of captionElements) {
+          const text = caption.textContent?.trim();
+          if (text && text.length > 10 && !text.includes('Add a comment')) {
+            content = text;
+            console.log('Found caption:', content.substring(0, 100));
+            break;
+          }
+        }
+        if (content) break;
+      }
     }
     
     // Get author username for context
-    const authorElement = document.querySelector('a[class*="notranslate"]') ||
-                         document.querySelector('header a[role="link"]');
-    if (authorElement) {
-      const authorName = authorElement.textContent?.trim() || '';
-      title = `Instagram post by ${authorName}`;
+    console.log('Looking for author...');
+    const authorSelectors = [
+      'a[class*="notranslate"]',
+      'header a[role="link"]',
+      'a[href*="/"][class*="Username"]'
+    ];
+    
+    for (const selector of authorSelectors) {
+      const authorElement = document.querySelector(selector);
+      if (authorElement) {
+        const authorName = authorElement.textContent?.trim() || '';
+        if (authorName && authorName.length > 0 && authorName.length < 50) {
+          title = `Instagram post by ${authorName}`;
+          console.log('Found author:', authorName);
+          break;
+        }
+      }
     }
     
-    // Fallback: try alternative selectors
+    // Fallback: Look for any substantial text in article
     if (!content) {
-      const altCaption = document.querySelector('article span[dir="auto"]');
-      if (altCaption) {
-        content = altCaption.textContent?.trim() || '';
+      console.log('Using fallback content extraction');
+      const article = document.querySelector('article');
+      if (article) {
+        const spans = article.querySelectorAll('span');
+        for (const span of spans) {
+          const text = span.textContent?.trim();
+          if (text && text.length > 50 && !text.includes('Add a comment')) {
+            content = text;
+            console.log('Found fallback content:', content.substring(0, 100));
+            break;
+          }
+        }
       }
     }
     
     // If still no title, use page title or URL
     if (!title) {
       title = document.title || window.location.href;
+      console.log('Using fallback title:', title);
     }
 
-    console.log('Extracted Instagram context:', {
-      title: title.substring(0, 50) + '...',
-      content: content.substring(0, 100) + '...'
-    });
-
-    return {
+    const result = {
       title: title.trim(),
       content: content.trim().substring(0, 1000) // Limit to 1000 chars
     };
+    
+    console.log('Final extracted context:', result);
+    return result;
   } catch (error) {
     console.error('Failed to extract Instagram post context:', error);
     return { title: '', content: '' };

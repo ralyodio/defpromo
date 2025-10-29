@@ -9,26 +9,65 @@ const getPrimalPostContext = () => {
     let title = '';
     let content = '';
     
-    // Try to get post content from feed
-    const postElements = document.querySelectorAll('[class*="noteContent"]');
-    if (postElements.length > 0) {
-      const firstPost = postElements[0];
-      content = firstPost.textContent?.trim() || '';
+    console.log('Extracting Primal/Nostr post context...');
+    
+    // Try to get post content from feed - Primal uses class-based selectors
+    const postSelectors = [
+      '[class*="noteContent"]',
+      '[class*="note_content"]',
+      '[class*="NoteContent"]',
+      'div[class*="post"] p',
+      'article p'
+    ];
+    
+    for (const selector of postSelectors) {
+      const postElements = document.querySelectorAll(selector);
+      console.log(`Found ${postElements.length} elements with selector: ${selector}`);
       
-      // Get author name as title
-      const authorElement = firstPost.closest('[class*="note"]')?.querySelector('[class*="userName"]');
-      if (authorElement) {
-        title = authorElement.textContent?.trim() || '';
+      if (postElements.length > 0) {
+        for (const post of postElements) {
+          const text = post.textContent?.trim();
+          if (text && text.length > 10 && !text.includes('Reply') && !text.includes('What\'s on your mind')) {
+            content = text;
+            console.log('Found post content:', content.substring(0, 100));
+            
+            // Get author name as title
+            const parentNote = post.closest('[class*="note"]') || post.closest('article');
+            if (parentNote) {
+              const authorSelectors = [
+                '[class*="userName"]',
+                '[class*="username"]',
+                '[class*="author"]'
+              ];
+              
+              for (const authSelector of authorSelectors) {
+                const authorElement = parentNote.querySelector(authSelector);
+                if (authorElement) {
+                  const authorText = authorElement.textContent?.trim();
+                  if (authorText && authorText.length > 0 && authorText.length < 100) {
+                    title = authorText;
+                    console.log('Found author:', title);
+                    break;
+                  }
+                }
+              }
+            }
+            break;
+          }
+        }
+        if (content) break;
       }
     }
     
-    // Fallback: Try to get from visible textareas
+    // Fallback: Try to get from visible divs/spans
     if (!content) {
-      const textareas = document.querySelectorAll('textarea:not([placeholder*="What"])');
-      for (const textarea of textareas) {
-        const text = textarea.value?.trim();
-        if (text && text.length > 50) {
+      console.log('Using fallback content extraction');
+      const textElements = document.querySelectorAll('div[class*="text"], span[class*="text"]');
+      for (const element of textElements) {
+        const text = element.textContent?.trim();
+        if (text && text.length > 50 && !text.includes('What\'s on your mind')) {
           content = text;
+          console.log('Found fallback content:', content.substring(0, 100));
           break;
         }
       }
@@ -37,14 +76,16 @@ const getPrimalPostContext = () => {
     // If still no title, use page title
     if (!title) {
       title = document.title || window.location.href;
+      console.log('Using fallback title:', title);
     }
 
-    console.log('Extracted Primal context:', { title, content: content.substring(0, 100) + '...' });
-
-    return {
+    const result = {
       title: title.trim(),
       content: content.trim().substring(0, 1000) // Limit to 1000 chars
     };
+    
+    console.log('Final extracted context:', result);
+    return result;
   } catch (error) {
     console.error('Failed to extract Primal post context:', error);
     return { title: '', content: '' };

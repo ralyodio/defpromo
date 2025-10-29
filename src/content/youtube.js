@@ -9,44 +9,86 @@ const getYouTubeVideoContext = () => {
     let title = '';
     let content = '';
     
-    // Get video title
-    const titleElement = document.querySelector('h1.ytd-video-primary-info-renderer') ||
-                        document.querySelector('yt-formatted-string.ytd-watch-metadata') ||
-                        document.querySelector('#title h1');
-    if (titleElement) {
-      title = titleElement.textContent?.trim() || '';
+    console.log('Extracting YouTube video context...');
+    
+    // Get video title - YouTube has multiple layouts
+    const titleSelectors = [
+      'h1.ytd-video-primary-info-renderer',
+      'yt-formatted-string.ytd-watch-metadata',
+      '#title h1',
+      'h1.style-scope.ytd-watch-metadata',
+      'ytd-watch-metadata h1'
+    ];
+    
+    for (const selector of titleSelectors) {
+      const titleElement = document.querySelector(selector);
+      if (titleElement) {
+        const text = titleElement.textContent?.trim();
+        if (text && text.length > 0) {
+          title = text;
+          console.log('Found video title:', title.substring(0, 100));
+          break;
+        }
+      }
     }
     
     // Get video description
-    const descriptionElement = document.querySelector('#description-inline-expander') ||
-                              document.querySelector('yt-formatted-string.ytd-text-inline-expander') ||
-                              document.querySelector('#description');
-    if (descriptionElement) {
-      content = descriptionElement.textContent?.trim() || '';
+    console.log('Looking for video description...');
+    const descriptionSelectors = [
+      '#description-inline-expander',
+      'yt-formatted-string.ytd-text-inline-expander',
+      '#description',
+      'ytd-text-inline-expander',
+      '#structured-description'
+    ];
+    
+    for (const selector of descriptionSelectors) {
+      const descriptionElement = document.querySelector(selector);
+      if (descriptionElement) {
+        const text = descriptionElement.textContent?.trim();
+        if (text && text.length > 10) {
+          content = text;
+          console.log('Found video description:', content.substring(0, 100));
+          break;
+        }
+      }
     }
     
     // Get channel name for additional context
-    const channelElement = document.querySelector('#channel-name a') ||
-                          document.querySelector('ytd-channel-name a');
-    if (channelElement && !title) {
-      const channelName = channelElement.textContent?.trim() || '';
-      title = `Video by ${channelName}`;
+    if (!title) {
+      console.log('Looking for channel name...');
+      const channelSelectors = [
+        '#channel-name a',
+        'ytd-channel-name a',
+        'yt-formatted-string.ytd-channel-name'
+      ];
+      
+      for (const selector of channelSelectors) {
+        const channelElement = document.querySelector(selector);
+        if (channelElement) {
+          const channelName = channelElement.textContent?.trim() || '';
+          if (channelName) {
+            title = `Video by ${channelName}`;
+            console.log('Found channel name:', channelName);
+            break;
+          }
+        }
+      }
     }
     
     // Fallback: use page title
     if (!title) {
-      title = document.title.replace(' - YouTube', '') || window.location.href;
+      title = document.title.replace(' - YouTube', '').replace('- YouTube', '') || window.location.href;
+      console.log('Using fallback title:', title);
     }
 
-    console.log('Extracted YouTube context:', {
-      title: title.substring(0, 50) + '...',
-      content: content.substring(0, 100) + '...'
-    });
-
-    return {
+    const result = {
       title: title.trim(),
       content: content.trim().substring(0, 1000) // Limit to 1000 chars
     };
+    
+    console.log('Final extracted context:', result);
+    return result;
   } catch (error) {
     console.error('Failed to extract YouTube video context:', error);
     return { title: '', content: '' };
