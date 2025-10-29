@@ -79,6 +79,9 @@ const checkForForms = () => {
   const commentBoxes = document.querySelectorAll('[placeholder*="What are your thoughts?"]');
   const replyBoxes = document.querySelectorAll('textarea[name="comment"]');
   
+  // Reddit markdown editor
+  const markdownBoxes = document.querySelectorAll('textarea[slot="text-input"], textarea[name="markdown"]');
+  
   postBoxes.forEach((box) => {
     if (!box.dataset.defpromoInjected) {
       injectButton(box, 'post');
@@ -86,7 +89,7 @@ const checkForForms = () => {
     }
   });
 
-  [...commentBoxes, ...replyBoxes].forEach((box) => {
+  [...commentBoxes, ...replyBoxes, ...markdownBoxes].forEach((box) => {
     if (!box.dataset.defpromoInjected) {
       injectButton(box, 'comment');
       box.dataset.defpromoInjected = 'true';
@@ -141,7 +144,9 @@ const injectButton = (textarea, type) => {
 
 const handleAutoFill = async (textarea, type) => {
   try {
-    const response = await chrome.runtime.sendMessage({
+    const api = typeof browser !== 'undefined' ? browser : chrome;
+    
+    const response = await api.runtime.sendMessage({
       type: 'GET_CONTENT',
       contentType: type,
     });
@@ -154,7 +159,7 @@ const handleAutoFill = async (textarea, type) => {
       textarea.dispatchEvent(inputEvent);
 
       // Track analytics
-      chrome.runtime.sendMessage({
+      api.runtime.sendMessage({
         type: 'TRACK_USAGE',
         platform: 'reddit',
         contentType: type,
@@ -167,8 +172,9 @@ const handleAutoFill = async (textarea, type) => {
   }
 };
 
-// Listen for messages from sidebar
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+// Listen for messages from sidebar (Firefox compatible)
+const api = typeof browser !== 'undefined' ? browser : chrome;
+api.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'GET_PAGE_CONTEXT') {
     const context = getRedditPostContext();
     sendResponse({ success: true, context });

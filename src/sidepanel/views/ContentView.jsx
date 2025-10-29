@@ -359,10 +359,15 @@ const ContentView = ({ activeProject }) => {
 
           // Priority selectors for specific platforms
           const prioritySelectors = [
-            // Reddit - new Lexical editor
+            // Reddit - new Lexical editor (rich text mode)
             'div[slot="rte"][data-lexical-editor="true"][contenteditable="true"]',
             'div[name="body"][data-lexical-editor="true"][contenteditable="true"]',
             'div[contenteditable="true"][data-lexical-editor="true"]',
+            
+            // Reddit - Markdown editor mode
+            'textarea[slot="text-input"]',
+            'textarea[name="markdown"]',
+            'faceplate-textarea[name="markdown"] textarea',
             
             // Twitter/X - main tweet box
             '[data-testid="tweetTextarea_0"]',
