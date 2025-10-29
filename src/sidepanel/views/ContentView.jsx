@@ -58,9 +58,12 @@ const ContentView = ({ activeProject }) => {
       // Check if we're on a supported platform
       const isReddit = tab.url?.includes('reddit.com');
       const isTwitter = tab.url?.includes('twitter.com') || tab.url?.includes('x.com');
+      const isLinkedIn = tab.url?.includes('linkedin.com');
+      const isBluesky = tab.url?.includes('bsky.app') || tab.url?.includes('bsky.social');
+      const isPrimal = tab.url?.includes('primal.net');
       
-      if (!isReddit && !isTwitter) {
-        throw new Error(`Not on a supported page. Current URL: ${tab.url || 'unknown'}. Supported: Reddit, Twitter/X`);
+      if (!isReddit && !isTwitter && !isLinkedIn && !isBluesky && !isPrimal) {
+        throw new Error(`Not on a supported page. Current URL: ${tab.url || 'unknown'}. Supported: Reddit, Twitter/X, LinkedIn, Bluesky, Primal`);
       }
 
       console.log('Sending message to tab:', tab.id, tab.url);
@@ -68,7 +71,7 @@ const ContentView = ({ activeProject }) => {
       // Send message to content script with timeout
       const response = await Promise.race([
         api.tabs.sendMessage(tab.id, {
-          type: 'GET_PAGE_CONTEXT',
+        type: 'GET_PAGE_CONTEXT',
         }),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Timeout: Content script did not respond. Refresh the page and try again.')), 5000)
@@ -230,7 +233,7 @@ const ContentView = ({ activeProject }) => {
         setError('No active tab found');
         return;
       }
-      
+
       const tab = tabs[0];
 
       // Define the function to inject
@@ -373,6 +376,19 @@ const ContentView = ({ activeProject }) => {
             '[data-testid="tweetTextarea_0"]',
             'div[contenteditable="true"][role="textbox"][data-testid="tweetTextarea_0"]',
             
+            // LinkedIn - Quill editor
+            '.ql-editor[data-placeholder*="Start a post"]',
+            '.ql-editor[data-placeholder*="Add a comment"]',
+            '.ql-editor[contenteditable="true"]',
+            
+            // Bluesky - contenteditable
+            '[contenteditable="true"][data-testid="composerTextInput"]',
+            '[contenteditable="true"][placeholder*="Write your reply"]',
+            
+            // Primal (Nostr)
+            'textarea[placeholder*="What\'s on your mind"]',
+            'textarea[placeholder*="Reply"]',
+            
             // Reddit - older comment boxes
             'shreddit-composer textarea',
             'textarea[placeholder*="Share your thoughts" i]',
@@ -453,8 +469,8 @@ const ContentView = ({ activeProject }) => {
         results = await api.scripting.executeScript({
           target: { tabId: tab.id },
           func: injectFunc,
-          args: [text],
-        });
+        args: [text],
+      });
       }
 
       // Check result
