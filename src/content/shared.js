@@ -153,3 +153,66 @@ export const waitForDOM = (initCallback) => {
     initCallback();
   }
 };
+
+/**
+ * Setup message listener and auto-inject buttons for a platform
+ * This is a simplified setup function for platforms that use selector-based detection
+ * @param {Function} extractContextFn - Function to extract page context
+ * @param {Array<string>} inputSelectors - Array of CSS selectors for input fields
+ */
+export const setupMessageListener = (extractContextFn, inputSelectors) => {
+  const api = typeof browser !== 'undefined' ? browser : chrome;
+  
+  // Set up message listener for context extraction
+  api.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'GET_PAGE_CONTEXT') {
+      try {
+        const context = extractContextFn();
+        sendResponse({ success: true, context });
+      } catch (error) {
+        console.error('Failed to extract context:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+      return true;
+    }
+  });
+
+  // Auto-inject buttons into detected input fields
+  const checkAndInjectButtons = () => {
+    inputSelectors.forEach((selector) => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach((element) => {
+        if (!element.dataset.defpromoInjected) {
+          // Determine if this is a post or comment based on context
+          const isComment = selector.toLowerCase().includes('comment') ||
+                           selector.toLowerCase().includes('reply');
+          const type = isComment ? 'comment' : 'post';
+          
+          // Get platform name from context function
+          const context = extractContextFn();
+          const platform = context.platform || 'unknown';
+          
+          // Create fill callback for this specific element
+          const fillCallback = (content) => {
+            if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+              element.value = content;
+              element.dispatchEvent(new Event('input', { bubbles: true }));
+              element.dispatchEvent(new Event('change', { bubbles: true }));
+            } else if (element.contentEditable === 'true') {
+              element.textContent = content;
+              element.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          };
+          
+          injectAutoFillButton(element, platform, type, fillCallback);
+        }
+      });
+    });
+  };
+
+  // Initialize with MutationObserver
+  initContentScript(checkAndInjectButtons);
+  
+  // Also run on DOM ready
+  waitForDOM(checkAndInjectButtons);
+};
