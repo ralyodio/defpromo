@@ -49,6 +49,10 @@ export default defineConfig({
         'content-linkedin': resolve(__dirname, 'src/content/linkedin.js'),
         'content-reddit': resolve(__dirname, 'src/content/reddit.js'),
         'content-facebook': resolve(__dirname, 'src/content/facebook.js'),
+        'content-tiktok': resolve(__dirname, 'src/content/tiktok.js'),
+        'content-instagram': resolve(__dirname, 'src/content/instagram.js'),
+        'content-threads': resolve(__dirname, 'src/content/threads.js'),
+        'content-youtube': resolve(__dirname, 'src/content/youtube.js'),
         'content-stacker': resolve(__dirname, 'src/content/stacker.js'),
         'content-bluesky': resolve(__dirname, 'src/content/bluesky.js'),
         'content-primal': resolve(__dirname, 'src/content/primal.js'),
@@ -74,6 +78,7 @@ export default defineConfig({
       },
     },
     emptyOutDir: true,
+    minify: false, // Disable minification to prevent variable name collisions in content scripts
   },
   test: {
     globals: true,

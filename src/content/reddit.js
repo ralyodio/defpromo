@@ -9,38 +9,22 @@ const getRedditPostContext = () => {
     let title = '';
     let content = '';
     
-    // Get title using wildcard selector for #post-title-*
-    const titleElement = document.querySelector('[id^="post-title-"]');
+    // Get title - h1 with id starting with "post-title-"
+    const titleElement = document.querySelector('h1[id^="post-title-"]');
     if (titleElement) {
       title = titleElement.textContent?.trim() || '';
     }
     
-    // Get content from the specific DOM structure
-    const textBodyContainer = document.querySelector('[data-post-click-location="text-body"]');
-    if (textBodyContainer) {
-      const contentDiv = textBodyContainer.querySelector('[property="schema:articleBody"]');
-      if (contentDiv) {
-        content = contentDiv.textContent?.trim() || '';
-      }
-    }
-    
-    // Fallback to generic selectors if specific ones fail
-    if (!title) {
-      title = document.querySelector('h1')?.textContent?.trim() || document.title;
-    }
-    
-    if (!content) {
-      // Try shreddit-post as fallback
-      const shredditPost = document.querySelector('shreddit-post');
-      if (shredditPost) {
-        const textBody = shredditPost.querySelector('[slot="text-body"]');
-        if (textBody) {
-          content = textBody.textContent?.trim() || '';
-        }
-      }
+    // Get content - div with id ending with "-post-rtjson-content"
+    const contentElement = document.querySelector('[id$="-post-rtjson-content"]');
+    if (contentElement) {
+      content = contentElement.textContent?.trim() || '';
     }
 
-    console.log('Extracted context:', { title, content: content.substring(0, 100) + '...' });
+    console.log('Extracted Reddit context:', {
+      title: title.substring(0, 100),
+      content: content.substring(0, 100)
+    });
 
     return {
       title: title.trim(),
@@ -175,12 +159,20 @@ const handleAutoFill = async (textarea, type) => {
 // Listen for messages from sidebar (Firefox compatible)
 const api = typeof browser !== 'undefined' ? browser : chrome;
 api.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Reddit content script received message:', message);
+  
   if (message.type === 'GET_PAGE_CONTEXT') {
+    console.log('Processing GET_PAGE_CONTEXT request');
     const context = getRedditPostContext();
+    console.log('Sending context response:', context);
     sendResponse({ success: true, context });
-    return true;
+    return true; // Keep channel open for async response
   }
+  
+  return false; // Close channel for other messages
 });
+
+console.log('Reddit content script message listener registered');
 
 // Initialize
 if (document.readyState === 'loading') {
