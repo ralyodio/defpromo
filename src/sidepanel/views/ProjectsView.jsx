@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { db } from '../../storage/db';
 import { scrapeAndExtract } from '../../services/scraper';
 import { generateProjectMetadata, suggestSubredditsAndHashtags } from '../../services/openai';
+import ProjectSuggestions from '../../components/ProjectSuggestions';
 
 const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpdate }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -174,6 +175,7 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
       console.log('API call completed. Result:', result);
       console.log('Got subreddits:', result.subreddits);
       console.log('Got hashtags:', result.hashtags);
+      console.log('Got search keywords:', result.searchKeywords);
 
       if (!result.subreddits || result.subreddits.length === 0) {
         console.warn('No subreddits returned!');
@@ -181,10 +183,14 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
       if (!result.hashtags || result.hashtags.length === 0) {
         console.warn('No hashtags returned!');
       }
+      if (!result.searchKeywords || result.searchKeywords.length === 0) {
+        console.warn('No search keywords returned!');
+      }
 
       await db.projects.update(keywordsProject.id, {
         suggestedSubreddits: result.subreddits || [],
         suggestedHashtags: result.hashtags || [],
+        suggestedSearchKeywords: result.searchKeywords || [],
         marketingKeywords: keywords, // Save keywords for future use
         updatedAt: Date.now(),
       });
@@ -429,7 +435,7 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
                       )}
                       <div className="mt-3 mb-3">
                         <div className="flex items-center justify-between mb-2">
-                          <p className="text-xs font-semibold text-gray-700">Suggested Subreddits:</p>
+                          <p className="text-xs font-semibold text-gray-700">Marketing Suggestions:</p>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -437,82 +443,24 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
                             }}
                             disabled={loading}
                             className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                            title="Generate subreddit suggestions with keywords"
+                            title="Generate marketing suggestions with keywords"
                           >
-                            {project.suggestedSubreddits?.length > 0 ? 'Refresh' : 'Generate'}
+                            {(project.suggestedSubreddits?.length > 0 || project.suggestedHashtags?.length > 0 || project.suggestedSearchKeywords?.length > 0) ? 'Refresh' : 'Generate'}
                           </button>
                         </div>
-                        {project.suggestedSubreddits && project.suggestedSubreddits.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {project.suggestedSubreddits.map((subreddit) => (
-                              <a
-                                key={subreddit}
-                                href={`https://www.reddit.com/r/${subreddit}/`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs hover:bg-orange-200 transition-colors"
-                              >
-                                r/{subreddit}
-                              </a>
-                            ))}
-                          </div>
+                        {(project.suggestedSubreddits?.length > 0 || project.suggestedHashtags?.length > 0 || project.suggestedSearchKeywords?.length > 0) ? (
+                          <ProjectSuggestions
+                            subreddits={project.suggestedSubreddits || []}
+                            hashtags={project.suggestedHashtags || []}
+                            searchKeywords={project.suggestedSearchKeywords || []}
+                            compact={true}
+                          />
                         ) : (
                           <p className="text-xs text-gray-500 italic">
-                            Click "Generate" to get subreddit suggestions
+                            Click "Generate" to get marketing suggestions
                           </p>
                         )}
                       </div>
-                      {project.suggestedHashtags && project.suggestedHashtags.length > 0 && (
-                        <div className="mt-3 mb-3">
-                          <p className="text-xs font-semibold text-gray-700 mb-2">Suggested Hashtags:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {project.suggestedHashtags.map((hashtag) => (
-                              <div key={hashtag} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                                <span>#{hashtag}</span>
-                                <div className="flex gap-1 ml-1">
-                                  <a
-                                    href={`https://x.com/search?q=%23${hashtag}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="hover:opacity-70"
-                                    title="Search on X/Twitter"
-                                  >
-                                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                                    </svg>
-                                  </a>
-                                  <a
-                                    href={`https://bsky.app/search?q=%23${hashtag}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="hover:opacity-70"
-                                    title="Search on Bluesky"
-                                  >
-                                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-                                    </svg>
-                                  </a>
-                                  <a
-                                    href={`https://primal.net/search/${encodeURIComponent('#' + hashtag)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="hover:opacity-70"
-                                    title="Search on Primal"
-                                  >
-                                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                                      <path d="M13.5 2c-5.621 0-10.211 4.443-10.475 10h-3.025l5 6.625 5-6.625h-2.975c.257-3.351 3.06-6 6.475-6 3.584 0 6.5 2.916 6.5 6.5s-2.916 6.5-6.5 6.5c-1.863 0-3.542-.793-4.728-2.053l-2.427 3.216c1.877 1.754 4.389 2.837 7.155 2.837 5.79 0 10.5-4.71 10.5-10.5s-4.71-10.5-10.5-10.5z"/>
-                                    </svg>
-                                  </a>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                       <div className="mt-3 text-xs text-gray-500">
                         Created {new Date(project.createdAt).toLocaleDateString()}
                       </div>

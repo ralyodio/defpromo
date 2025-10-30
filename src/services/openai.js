@@ -525,9 +525,9 @@ Focus on hashtags that:
 };
 
 /**
- * Suggest both subreddits and hashtags in a single API call
+ * Suggest subreddits, hashtags, and search keywords in a single API call
  * @param {Object} params - Parameters
- * @returns {Promise<{subreddits: string[], hashtags: string[]}>}
+ * @returns {Promise<{subreddits: string[], hashtags: string[], searchKeywords: string[]}>}
  */
 export const suggestSubredditsAndHashtags = async ({
   apiKey,
@@ -543,7 +543,8 @@ export const suggestSubredditsAndHashtags = async ({
 
   const prompt = `Based on this product, suggest:
 1. Top 10 relevant subreddits for engagement
-2. Top 10 relevant hashtags for social media
+2. Top 10 relevant hashtags for social media (Twitter/X, Instagram, Threads)
+3. Top 10 search keywords for platforms without hashtag support (Facebook, YouTube, LinkedIn)
 
 Product: ${productName}
 Description: ${description}
@@ -554,7 +555,8 @@ ${keywords ? `Additional Keywords: ${keywords}` : ''}
 Return ONLY a JSON object with this exact structure:
 {
   "subreddits": ["subreddit1", "subreddit2", ...],
-  "hashtags": ["hashtag1", "hashtag2", ...]
+  "hashtags": ["hashtag1", "hashtag2", ...],
+  "searchKeywords": ["keyword1", "keyword2", ...]
 }
 
 Subreddits should:
@@ -564,10 +566,16 @@ Subreddits should:
 - Be specific (not too generic)
 
 Hashtags should:
-- Be actively searched
+- Be actively searched on Twitter/X, Instagram, Threads
 - Match the product niche
 - Mix popular and niche tags
-- Be specific enough to be useful`;
+- Be specific enough to be useful
+
+Search Keywords should:
+- Work well in Facebook, YouTube, LinkedIn search
+- Be phrases people actually search for
+- Include both broad and specific terms
+- Help discover relevant content and communities`;
 
   try {
     const response = await fetch(OPENAI_API_URL, {
@@ -602,7 +610,7 @@ Hashtags should:
     const content = data.choices[0]?.message?.content || '';
 
     if (!content) {
-      return { subreddits: [], hashtags: [] };
+      return { subreddits: [], hashtags: [], searchKeywords: [] };
     }
 
     console.log('Raw combined response:', content);
@@ -631,13 +639,22 @@ Hashtags should:
             .slice(0, 10)
         : [];
       
+      // Clean up search keywords
+      const cleanSearchKeywords = Array.isArray(result.searchKeywords)
+        ? result.searchKeywords
+            .map(k => k.trim())
+            .filter(k => k.length > 0)
+            .slice(0, 10)
+        : [];
+      
       return {
         subreddits: cleanSubreddits,
         hashtags: cleanHashtags,
+        searchKeywords: cleanSearchKeywords,
       };
     } catch (parseError) {
       console.error('Failed to parse combined suggestions:', parseError);
-      return { subreddits: [], hashtags: [] };
+      return { subreddits: [], hashtags: [], searchKeywords: [] };
     }
   } catch (error) {
     console.error('Combined suggestion error:', error);
