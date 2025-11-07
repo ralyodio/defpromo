@@ -38,26 +38,26 @@
   "browser_action": {
     "default_popup": "src/popup/index.html",
     "default_icon": {
-      "16": "icons/icon-16.svg",
-      "32": "icons/icon-32.svg",
-      "48": "icons/icon-48.svg",
-      "128": "icons/icon-128.svg"
+      "16": "icons/favicon.svg",
+      "32": "icons/favicon.svg",
+      "48": "icons/favicon.svg",
+      "128": "icons/favicon.svg"
     }
   },
   "sidebar_action": {
     "default_panel": "src/sidepanel/index.html",
     "default_icon": {
-      "16": "icons/icon-16.svg",
-      "32": "icons/icon-32.svg",
-      "48": "icons/icon-48.svg",
-      "128": "icons/icon-128.svg"
+      "16": "icons/favicon.svg",
+      "32": "icons/favicon.svg",
+      "48": "icons/favicon.svg",
+      "128": "icons/favicon.svg"
     }
   },
   "icons": {
-    "16": "icons/icon-16.svg",
-    "32": "icons/icon-32.svg",
-    "48": "icons/icon-48.svg",
-    "128": "icons/icon-128.svg"
+    "16": "icons/favicon.svg",
+    "32": "icons/favicon.svg",
+    "48": "icons/favicon.svg",
+    "128": "icons/favicon.svg"
   },
   "content_scripts": [
     {
