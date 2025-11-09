@@ -397,7 +397,8 @@ const ContentView = ({ activeProject }) => {
                   return true;
                 } catch (e) {
                   // Method 3: Direct DOM manipulation as last resort
-                  element.innerHTML = '';
+                  // Use replaceChildren() for safer DOM manipulation
+                  element.replaceChildren();
                   
                   const lines = text.split('\n');
                   lines.forEach((line) => {
