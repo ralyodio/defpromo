@@ -2,6 +2,14 @@
 
 AI-powered social media self-promotion assistant with comprehensive analytics and A/B testing capabilities.
 
+## Installation
+
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Install-blue?logo=googlechrome)](https://chromewebstore.google.com/detail/defpromo/efdlekcpbjccbilfonhbdicfoaklanap)
+[![Firefox Add-ons](https://img.shields.io/badge/Firefox-Install-orange?logo=firefox)](https://addons.mozilla.org/en-US/firefox/addon/defpromo/)
+
+- **Chrome/Edge**: [Install from Chrome Web Store](https://chromewebstore.google.com/detail/defpromo/efdlekcpbjccbilfonhbdicfoaklanap)
+- **Firefox**: [Install from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/defpromo/)
+
 ## Features
 
 - 🤖 **AI Content Generation**: Generate multiple promotional content variations using OpenAI
