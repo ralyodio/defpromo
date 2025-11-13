@@ -82,9 +82,10 @@ export const generateContent = async ({
  * @param {Object} params - Generation parameters
  * @param {number} params.count - Number of variations to generate (default: 5)
  * @param {Object} params.pageContext - Current page context (optional)
+ * @param {string} params.platform - Platform name for platform-specific constraints (optional)
  * @returns {Promise<string[]>} Array of generated variations
  */
-export const generateVariations = async ({ count = 5, pageContext, ...params }) => {
+export const generateVariations = async ({ count = 5, pageContext, platform, ...params }) => {
   if (!params.apiKey) {
     throw new Error('OpenAI API key is required');
   }
@@ -92,6 +93,7 @@ export const generateVariations = async ({ count = 5, pageContext, ...params }) 
   const prompt = buildPrompt({
     ...params,
     pageContext,
+    platform,
     requestVariations: true,
     variationCount: count,
   });
@@ -163,10 +165,20 @@ const buildPrompt = ({
   tone,
   keyFeatures,
   pageContext,
+  platform,
   requestVariations,
   variationCount,
 }) => {
   let prompt = '';
+
+  // Platform-specific character limits
+  const platformLimits = {
+    tiktok: 150,
+    twitter: 280,
+    // Add more as needed
+  };
+
+  const charLimit = platform ? platformLimits[platform.toLowerCase()] : null;
 
   if (type === 'comment' && pageContext) {
     // Context-aware comment generation
@@ -181,6 +193,7 @@ Generate ${variationCount} helpful, authentic comments that:
 3. Subtly and naturally work in a mention of "${productName}" as part of your helpful response
 4. Make the product mention feel organic - like you're sharing a tool that genuinely helps with their situation
 5. Don't be overly promotional - be conversational and authentic
+${charLimit ? `6. CRITICAL: Keep each comment under ${charLimit} characters (${platform} limit)` : ''}
 
 Your Product/Service to mention:
 - Name: ${productName}
@@ -190,6 +203,7 @@ ${keyFeatures?.length > 0 ? `- Key features: ${keyFeatures.join(', ')}` : ''}
 Tone: ${tone}
 
 IMPORTANT: Each comment MUST include a natural, subtle reference to "${productName}" while being genuinely helpful. Think of it as recommending a tool you personally use and find valuable for situations like the one in the post.
+${charLimit ? `\nCRITICAL CHARACTER LIMIT: Each comment MUST be under ${charLimit} characters. Count carefully!` : ''}
 
 Generate ${variationCount} variations, each on its own line, separated by blank lines. No numbering, no JSON, just plain text comments.`;
   } else {

@@ -153,6 +153,21 @@ const ContentView = ({ activeProject }) => {
       // Use provided context or null for posts
       const context = pageContext || (contentType === 'comment' ? { title: contextTitle, content: contextContent } : null);
 
+      // Detect platform from current tab
+      let platform = null;
+      try {
+        const api = typeof browser !== 'undefined' ? browser : chrome;
+        const tabs = await api.tabs.query({ active: true, currentWindow: true });
+        if (tabs && tabs.length > 0 && tabs[0]?.url) {
+          const url = tabs[0].url;
+          if (url.includes('tiktok.com')) platform = 'tiktok';
+          else if (url.includes('twitter.com') || url.includes('x.com')) platform = 'twitter';
+          // Add more platforms as needed
+        }
+      } catch (err) {
+        console.log('Could not detect platform:', err);
+      }
+
       // Generate variations
       const generated = await generateVariations({
         apiKey: settings.openaiKey,
@@ -163,6 +178,7 @@ const ContentView = ({ activeProject }) => {
         tone: activeProject.tone || 'professional',
         keyFeatures: activeProject.keyFeatures || [],
         pageContext: context,
+        platform: platform,
         count: 5,
       });
 
