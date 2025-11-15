@@ -20,6 +20,7 @@ const ContentView = ({ activeProject }) => {
   const [generatedHashtags, setGeneratedHashtags] = useState([]);
   const [generatedSearchKeywords, setGeneratedSearchKeywords] = useState([]);
   const [loadingKeywords, setLoadingKeywords] = useState(false);
+  const [includeLink, setIncludeLink] = useState(false);
 
   useEffect(() => {
     if (activeProject) {
@@ -179,6 +180,8 @@ const ContentView = ({ activeProject }) => {
         keyFeatures: activeProject.keyFeatures || [],
         pageContext: context,
         platform: platform,
+        includeLink: includeLink,
+        productUrl: activeProject.url || '',
         count: 5,
       });
 
@@ -766,6 +769,27 @@ const ContentView = ({ activeProject }) => {
                 Comment
               </label>
             </div>
+          </div>
+
+          <div>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={includeLink}
+                onChange={(e) => setIncludeLink(e.target.checked)}
+                className="mr-2 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              />
+              <span className="text-sm text-gray-700">
+                Include link {activeProject?.url && (
+                  <span className="text-gray-500">({activeProject.url})</span>
+                )}
+              </span>
+            </label>
+            {includeLink && !activeProject?.url && (
+              <p className="text-xs text-amber-600 mt-1">
+                ⚠️ No URL set for this project. Add one in the Projects tab.
+              </p>
+            )}
           </div>
 
           <button

@@ -83,9 +83,11 @@ export const generateContent = async ({
  * @param {number} params.count - Number of variations to generate (default: 5)
  * @param {Object} params.pageContext - Current page context (optional)
  * @param {string} params.platform - Platform name for platform-specific constraints (optional)
+ * @param {boolean} params.includeLink - Whether to include product link (optional)
+ * @param {string} params.productUrl - Product URL to include (optional)
  * @returns {Promise<string[]>} Array of generated variations
  */
-export const generateVariations = async ({ count = 5, pageContext, platform, ...params }) => {
+export const generateVariations = async ({ count = 5, pageContext, platform, includeLink = false, productUrl = '', ...params }) => {
   if (!params.apiKey) {
     throw new Error('OpenAI API key is required');
   }
@@ -94,6 +96,8 @@ export const generateVariations = async ({ count = 5, pageContext, platform, ...
     ...params,
     pageContext,
     platform,
+    includeLink,
+    productUrl,
     requestVariations: true,
     variationCount: count,
   });
@@ -166,6 +170,8 @@ const buildPrompt = ({
   keyFeatures,
   pageContext,
   platform,
+  includeLink,
+  productUrl,
   requestVariations,
   variationCount,
 }) => {
@@ -193,22 +199,65 @@ Generate ${variationCount} helpful, authentic comments that:
 3. Subtly and naturally work in a mention of "${productName}" as part of your helpful response
 4. Make the product mention feel organic - like you're sharing a tool that genuinely helps with their situation
 5. Don't be overly promotional - be conversational and authentic
-${charLimit ? `6. CRITICAL: Keep each comment under ${charLimit} characters (${platform} limit)` : ''}
+${includeLink && productUrl ? `6. Include the link ${productUrl} naturally in the comment` : ''}
+${charLimit ? `${includeLink ? '7' : '6'}. CRITICAL: Keep each comment under ${charLimit} characters (${platform} limit)` : ''}
 
 Your Product/Service to mention:
 - Name: ${productName}
 - Description: ${description}
 ${keyFeatures?.length > 0 ? `- Key features: ${keyFeatures.join(', ')}` : ''}
+${includeLink && productUrl ? `- Link: ${productUrl}` : ''}
 
 Tone: ${tone}
 
 IMPORTANT: Each comment MUST include a natural, subtle reference to "${productName}" while being genuinely helpful. Think of it as recommending a tool you personally use and find valuable for situations like the one in the post.
+${includeLink && productUrl ? `\nInclude the link ${productUrl} naturally - don't just append it, weave it into the comment contextually.` : ''}
 ${charLimit ? `\nCRITICAL CHARACTER LIMIT: Each comment MUST be under ${charLimit} characters. Count carefully!` : ''}
 
 Generate ${variationCount} variations, each on its own line, separated by blank lines. No numbering, no JSON, just plain text comments.`;
+  } else if (type === 'post') {
+    // Post generation - more substantial content
+    prompt = `Generate ${variationCount} engaging social media posts to promote "${productName}".
+
+Product Description: ${description}`;
+
+    if (targetAudience) {
+      prompt += `\nTarget Audience: ${targetAudience}`;
+    }
+
+    if (keyFeatures?.length > 0) {
+      prompt += `\nKey Features: ${keyFeatures.join(', ')}`;
+    }
+
+    if (includeLink && productUrl) {
+      prompt += `\nProduct Link: ${productUrl}`;
+    }
+
+    prompt += `\nTone: ${tone}`;
+    prompt += `\n${charLimit ? `Character Limit: ${charLimit} (${platform})` : ''}`;
+
+    prompt += `\n\nCreate ${variationCount} unique social media posts that:
+1. Are substantial posts (not just short comments)
+2. Tell a story or share valuable insights
+3. Highlight the product's benefits naturally
+4. Include engaging hooks to capture attention
+5. Feel authentic and conversational (not overly salesy)
+6. Are complete standalone posts that work on any platform
+${includeLink && productUrl ? `7. Include the link ${productUrl} naturally in the post` : ''}
+${charLimit ? `${includeLink ? '8' : '7'}. Stay under ${charLimit} characters` : ''}
+
+Each post should take a different angle:
+- Problem/solution approach
+- Personal story or testimonial style
+- Feature highlight with benefits
+- Industry insight with product mention
+- Question or engagement-focused post
+
+${includeLink && productUrl ? `When including the link ${productUrl}, integrate it naturally into the post - don't just append it at the end. Make it feel like a natural part of the story or call-to-action.\n` : ''}
+Return each variation as plain text, one per line, separated by blank lines. No numbering, no JSON formatting.`;
   } else {
-    // Generic post generation
-    prompt = `Generate ${type === 'post' ? 'a social media post' : 'a comment'} to subtly promote "${productName}".
+    // Generic comment generation (fallback)
+    prompt = `Generate a comment to subtly promote "${productName}".
 
 Product Description: ${description}`;
 
