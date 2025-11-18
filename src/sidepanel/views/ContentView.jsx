@@ -172,6 +172,7 @@ const ContentView = ({ activeProject }) => {
       // Generate variations
       const generated = await generateVariations({
         apiKey: settings.openaiKey,
+        projectId: activeProject.id,
         productName: activeProject.name,
         description: activeProject.description || '',
         type: contentType,
