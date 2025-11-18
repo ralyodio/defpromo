@@ -8,7 +8,7 @@ import { db } from './db.js';
 /**
  * Current database version
  */
-export const CURRENT_VERSION = 1;
+export const CURRENT_VERSION = 2;
 
 /**
  * Migration functions for each version
@@ -20,17 +20,11 @@ const migrations = {
     console.log('Database initialized at version 1');
   },
   
-  // Example for future version 2:
-  // 2: async () => {
-  //   // Add new fields to existing records
-  //   const projects = await db.projects.toArray();
-  //   for (const project of projects) {
-  //     if (!project.hasOwnProperty('newField')) {
-  //       project.newField = 'default value';
-  //       await db.projects.put(project);
-  //     }
-  //   }
-  // },
+  2: async () => {
+    // Add apiUsage table for tracking API costs
+    // The table is automatically created by Dexie when version is upgraded
+    console.log('Database upgraded to version 2 - added apiUsage table');
+  },
 };
 
 /**

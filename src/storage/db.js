@@ -7,11 +7,12 @@ import Dexie from 'dexie';
 export const db = new Dexie('DefPromoDB');
 
 // Define database schema
-db.version(1).stores({
+db.version(2).stores({
   settings: 'id',
   projects: 'id, name, createdAt, updatedAt',
   generatedContent: 'id, projectId, type, createdAt',
   analytics: 'id, projectId, contentId, platform, submittedAt',
+  apiUsage: 'id, projectId, service, timestamp, model',
 });
 
 /**
@@ -38,6 +39,7 @@ export const clearDatabase = async () => {
     await db.projects.clear();
     await db.generatedContent.clear();
     await db.analytics.clear();
+    await db.apiUsage.clear();
     console.log('Database cleared successfully');
   } catch (error) {
     console.error('Failed to clear database:', error);
@@ -65,11 +67,12 @@ export const deleteDatabase = async () => {
  */
 export const exportAllData = async () => {
   try {
-    const [settings, projects, generatedContent, analytics] = await Promise.all([
+    const [settings, projects, generatedContent, analytics, apiUsage] = await Promise.all([
       db.settings.toArray(),
       db.projects.toArray(),
       db.generatedContent.toArray(),
       db.analytics.toArray(),
+      db.apiUsage.toArray(),
     ]);
 
     return {
@@ -80,6 +83,7 @@ export const exportAllData = async () => {
         projects,
         generatedContent,
         analytics,
+        apiUsage,
       },
     };
   } catch (error) {
@@ -105,6 +109,7 @@ export const importAllData = async (data, merge = false) => {
       projects: 0,
       generatedContent: 0,
       analytics: 0,
+      apiUsage: 0,
     };
 
     // If not merging, clear existing data first
@@ -161,6 +166,19 @@ export const importAllData = async (data, merge = false) => {
       } else {
         await db.analytics.bulkAdd(data.data.analytics);
         stats.analytics = data.data.analytics.length;
+      }
+    }
+
+    // Import API usage
+    if (data.data.apiUsage?.length > 0) {
+      if (merge) {
+        for (const usage of data.data.apiUsage) {
+          await db.apiUsage.put(usage);
+          stats.apiUsage++;
+        }
+      } else {
+        await db.apiUsage.bulkAdd(data.data.apiUsage);
+        stats.apiUsage = data.data.apiUsage.length;
       }
     }
 

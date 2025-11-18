@@ -100,7 +100,20 @@ const SettingsView = () => {
 
           <div className="space-y-4">
             <div>
-              <label className="label">OpenAI API Key</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="label mb-0">OpenAI API Key</label>
+                <a
+                  href="https://platform.openai.com/api-keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                >
+                  <span>Create API Key</span>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
               <input
                 type="password"
                 value={settings.openaiKey}
@@ -127,7 +140,26 @@ const SettingsView = () => {
             </div>
 
             <div>
-              <label className="label">Scraper API Key</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="label mb-0">Scraper API Key</label>
+                <a
+                  href={
+                    settings.scraperService === 'scrapingbee'
+                      ? 'https://www.scrapingbee.com/account/api'
+                      : settings.scraperService === 'scraperapi'
+                      ? 'https://www.scraperapi.com/dashboard'
+                      : 'https://www.browserless.io/account'
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                >
+                  <span>Get API Key</span>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
               <input
                 type="password"
                 value={settings.scraperKey}

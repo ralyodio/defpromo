@@ -3,6 +3,8 @@
  * Handles AI content generation using OpenAI's API
  */
 
+import { recordApiUsage, calculateCost } from './apiCost.js';
+
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 const DEFAULT_MODEL = 'gpt-4o-mini';
 
@@ -10,6 +12,7 @@ const DEFAULT_MODEL = 'gpt-4o-mini';
  * Generate promotional content using OpenAI
  * @param {Object} params - Generation parameters
  * @param {string} params.apiKey - OpenAI API key
+ * @param {string} params.projectId - Project ID for cost tracking (optional)
  * @param {string} params.productName - Product name
  * @param {string} params.description - Product description
  * @param {string} params.type - Content type ('post' or 'comment')
@@ -20,6 +23,7 @@ const DEFAULT_MODEL = 'gpt-4o-mini';
  */
 export const generateContent = async ({
   apiKey,
+  projectId,
   productName,
   description,
   type = 'post',
@@ -70,6 +74,31 @@ export const generateContent = async ({
     }
 
     const data = await response.json();
+    
+    // Record API usage for cost tracking
+    if (projectId && data.usage) {
+      try {
+        const cost = calculateCost({
+          service: 'openai',
+          model: DEFAULT_MODEL,
+          inputTokens: data.usage.prompt_tokens || 0,
+          outputTokens: data.usage.completion_tokens || 0,
+        });
+        
+        await recordApiUsage({
+          projectId,
+          service: 'openai',
+          model: DEFAULT_MODEL,
+          inputTokens: data.usage.prompt_tokens || 0,
+          outputTokens: data.usage.completion_tokens || 0,
+          cost,
+        });
+      } catch (costError) {
+        console.error('Failed to record API usage:', costError);
+        // Don't throw - cost tracking failure shouldn't break the main flow
+      }
+    }
+    
     return data.choices[0]?.message?.content || '';
   } catch (error) {
     console.error('OpenAI generation error:', error);
@@ -80,6 +109,7 @@ export const generateContent = async ({
 /**
  * Generate multiple content variations
  * @param {Object} params - Generation parameters
+ * @param {string} params.projectId - Project ID for cost tracking (optional)
  * @param {number} params.count - Number of variations to generate (default: 5)
  * @param {Object} params.pageContext - Current page context (optional)
  * @param {string} params.platform - Platform name for platform-specific constraints (optional)
@@ -87,7 +117,7 @@ export const generateContent = async ({
  * @param {string} params.productUrl - Product URL to include (optional)
  * @returns {Promise<string[]>} Array of generated variations
  */
-export const generateVariations = async ({ count = 5, pageContext, platform, includeLink = false, productUrl = '', ...params }) => {
+export const generateVariations = async ({ projectId, count = 5, pageContext, platform, includeLink = false, productUrl = '', ...params }) => {
   if (!params.apiKey) {
     throw new Error('OpenAI API key is required');
   }
@@ -132,6 +162,30 @@ export const generateVariations = async ({ count = 5, pageContext, platform, inc
     }
 
     const data = await response.json();
+    
+    // Record API usage for cost tracking
+    if (projectId && data.usage) {
+      try {
+        const cost = calculateCost({
+          service: 'openai',
+          model: DEFAULT_MODEL,
+          inputTokens: data.usage.prompt_tokens || 0,
+          outputTokens: data.usage.completion_tokens || 0,
+        });
+        
+        await recordApiUsage({
+          projectId,
+          service: 'openai',
+          model: DEFAULT_MODEL,
+          inputTokens: data.usage.prompt_tokens || 0,
+          outputTokens: data.usage.completion_tokens || 0,
+          cost,
+        });
+      } catch (costError) {
+        console.error('Failed to record API usage:', costError);
+      }
+    }
+    
     const content = data.choices[0]?.message?.content || '';
 
     if (!content) {

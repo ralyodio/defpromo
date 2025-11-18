@@ -17,7 +17,12 @@ AI-powered social media self-promotion assistant with comprehensive analytics an
 - 🔄 **A/B Testing**: Compare content variation performance
 - 💾 **Data Portability**: Export/import all data as JSON for cross-browser/machine use
 - 🎯 **Multi-Project Management**: Manage multiple products simultaneously
-- 🌐 **Cross-Platform**: Supports 10 platforms - Twitter/X, LinkedIn, Reddit, Facebook, Stacker News, Bluesky, Primal.net, Slack, Discord, and Telegram
+- 🌐 **Cross-Platform**: Supports 14 platforms:
+  - **Social Media**: Twitter/X, LinkedIn, Facebook, Instagram, Threads, TikTok, YouTube
+  - **Communities**: Reddit, Stacker News
+  - **Decentralized**: Primal.net (Nostr)
+  - **Messaging**: Slack, Discord, Telegram
+  - **Coming Soon**: Bluesky (disabled to prevent account bans)
 - 📱 **Cross-Browser Sidebar**: Content-script based sidebar works on all browsers without platform-specific APIs
 
 ## Installation

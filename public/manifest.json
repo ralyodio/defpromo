@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "DefPromo",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "AI-powered social media self-promotion assistant with analytics",
   "homepage_url": "https://defpromo.com",
   "permissions": [
@@ -20,8 +20,6 @@
     "https://www.youtube.com/*",
     "https://www.tiktok.com/*",
     "https://stacker.news/*",
-    "https://bsky.app/*",
-    "https://*.bsky.social/*",
     "https://primal.net/*",
     "https://*.slack.com/*",
     "https://discord.com/*",
@@ -90,11 +88,6 @@
     {
       "matches": ["https://stacker.news/*"],
       "js": ["content/content-stacker.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://bsky.app/*", "https://*.bsky.social/*"],
-      "js": ["content/content-bluesky.js"],
       "run_at": "document_idle"
     },
     {

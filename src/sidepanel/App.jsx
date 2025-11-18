@@ -3,6 +3,7 @@ import { db } from '../storage/db';
 import ErrorBoundary from '../components/ErrorBoundary';
 import Toast from '../components/Toast';
 import Loading from '../components/Loading';
+import CostTracker from '../components/CostTracker';
 
 // Import views
 import ProjectsView from './views/ProjectsView';
@@ -111,15 +112,18 @@ const App = () => {
       <header className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">DefPromo</h1>
-          {activeProject && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary-50 border border-primary-200 rounded-lg">
-              <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
-              <div className="text-sm">
-                <span className="text-gray-600">Active:</span>{' '}
-                <span className="font-semibold text-primary-700">{activeProject.name}</span>
+          <div className="flex items-center gap-3">
+            {activeProject && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary-50 border border-primary-200 rounded-lg">
+                <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
+                <div className="text-sm">
+                  <span className="text-gray-600">Active:</span>{' '}
+                  <span className="font-semibold text-primary-700">{activeProject.name}</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+            <CostTracker activeProject={activeProject} projects={projects} />
+          </div>
         </div>
       </header>
 
