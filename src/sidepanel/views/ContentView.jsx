@@ -3,7 +3,7 @@ import { db } from '../../storage/db';
 import { generateVariations, suggestSubredditsAndHashtags } from '../../services/openai';
 import ProjectSuggestions from '../../components/ProjectSuggestions';
 
-const ContentView = ({ activeProject }) => {
+const ContentView = ({ activeProject, onCostUpdate }) => {
   const [contentType, setContentType] = useState('comment');
   const [variations, setVariations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -207,6 +207,11 @@ const ContentView = ({ activeProject }) => {
       });
 
       await loadHistory();
+      
+      // Notify parent to refresh cost tracker
+      if (onCostUpdate) {
+        onCostUpdate();
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -282,6 +287,11 @@ const ContentView = ({ activeProject }) => {
       const keywordCount = (result.searchKeywords || []).length;
       setSuccess(`Generated ${result.subreddits?.length || 0} subreddits, ${result.hashtags?.length || 0} hashtags, and ${keywordCount} search keywords!`);
       setTimeout(() => setSuccess(null), 3000);
+      
+      // Notify parent to refresh cost tracker
+      if (onCostUpdate) {
+        onCostUpdate();
+      }
     } catch (err) {
       setError(err.message);
     } finally {

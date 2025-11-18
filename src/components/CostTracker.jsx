@@ -5,7 +5,7 @@ import { getProjectCost, getCostByProject } from '../services/apiCost';
  * CostTracker Component
  * Displays API usage costs for the active project
  */
-const CostTracker = ({ activeProject, projects = [] }) => {
+const CostTracker = ({ activeProject, projects = [], refreshKey = 0 }) => {
   const [projectCost, setProjectCost] = useState(0);
   const [allCosts, setAllCosts] = useState({});
   const [showDetails, setShowDetails] = useState(false);
@@ -13,7 +13,7 @@ const CostTracker = ({ activeProject, projects = [] }) => {
 
   useEffect(() => {
     loadCosts();
-  }, [activeProject]);
+  }, [activeProject, refreshKey]);
 
   const loadCosts = async () => {
     try {

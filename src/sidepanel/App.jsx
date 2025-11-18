@@ -17,6 +17,7 @@ const App = () => {
   const [projects, setProjects] = useState([]);
   const [toast, setToast] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [costRefreshKey, setCostRefreshKey] = useState(0);
 
   useEffect(() => {
     loadProjects();
@@ -45,6 +46,11 @@ const App = () => {
 
   const showToast = (message, type = 'info') => {
     setToast({ message, type });
+  };
+
+  const handleCostUpdate = () => {
+    // Increment the refresh key to trigger CostTracker re-render
+    setCostRefreshKey(prev => prev + 1);
   };
 
   const handleProjectChange = async (projectId) => {
@@ -79,6 +85,7 @@ const App = () => {
         return (
           <ContentView
             activeProject={activeProject}
+            onCostUpdate={handleCostUpdate}
           />
         );
       case 'analytics':
@@ -122,7 +129,11 @@ const App = () => {
                 </div>
               </div>
             )}
-            <CostTracker activeProject={activeProject} projects={projects} />
+            <CostTracker
+              activeProject={activeProject}
+              projects={projects}
+              refreshKey={costRefreshKey}
+            />
           </div>
         </div>
       </header>
