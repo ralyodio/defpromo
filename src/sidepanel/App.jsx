@@ -79,6 +79,7 @@ const App = () => {
             activeProject={activeProject}
             onProjectChange={handleProjectChange}
             onProjectsUpdate={loadProjects}
+            onCostUpdate={handleCostUpdate}
           />
         );
       case 'content':

@@ -347,6 +347,7 @@ Product Description: ${description}`;
  */
 export const generateProjectMetadata = async ({
   apiKey,
+  projectId,
   url,
   title,
   metaDescription,
@@ -402,6 +403,30 @@ Return ONLY valid JSON, no markdown or explanation.`;
     }
 
     const data = await response.json();
+    
+    // Record API usage for cost tracking
+    if (projectId && data.usage) {
+      try {
+        const cost = calculateCost({
+          service: 'openai',
+          model: DEFAULT_MODEL,
+          inputTokens: data.usage.prompt_tokens || 0,
+          outputTokens: data.usage.completion_tokens || 0,
+        });
+        
+        await recordApiUsage({
+          projectId,
+          service: 'openai',
+          model: DEFAULT_MODEL,
+          inputTokens: data.usage.prompt_tokens || 0,
+          outputTokens: data.usage.completion_tokens || 0,
+          cost,
+        });
+      } catch (costError) {
+        console.error('Failed to record API usage:', costError);
+      }
+    }
+    
     const content = data.choices[0]?.message?.content || '{}';
 
     // Parse JSON response
@@ -444,6 +469,7 @@ Return ONLY valid JSON, no markdown or explanation.`;
  */
 export const suggestSubreddits = async ({
   apiKey,
+  projectId,
   productName,
   description,
   targetAudience,
@@ -501,6 +527,30 @@ Focus on subreddits that:
     }
 
     const data = await response.json();
+    
+    // Record API usage for cost tracking
+    if (projectId && data.usage) {
+      try {
+        const cost = calculateCost({
+          service: 'openai',
+          model: DEFAULT_MODEL,
+          inputTokens: data.usage.prompt_tokens || 0,
+          outputTokens: data.usage.completion_tokens || 0,
+        });
+        
+        await recordApiUsage({
+          projectId,
+          service: 'openai',
+          model: DEFAULT_MODEL,
+          inputTokens: data.usage.prompt_tokens || 0,
+          outputTokens: data.usage.completion_tokens || 0,
+          cost,
+        });
+      } catch (costError) {
+        console.error('Failed to record API usage:', costError);
+      }
+    }
+    
     const content = data.choices[0]?.message?.content || '';
 
     if (!content) {

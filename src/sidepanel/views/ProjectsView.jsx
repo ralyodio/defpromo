@@ -4,7 +4,7 @@ import { scrapeAndExtract } from '../../services/scraper';
 import { generateProjectMetadata, suggestSubredditsAndHashtags } from '../../services/openai';
 import ProjectSuggestions from '../../components/ProjectSuggestions';
 
-const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpdate }) => {
+const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpdate, onCostUpdate }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,47 +42,40 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
         service: 'browserless',
       });
 
-      // Step 2: Use OpenAI to generate better project metadata
+      // Step 2: Create project first to get an ID for cost tracking
+      const newProjectId = `proj-${Date.now()}`;
+      
+      // Step 3: Use OpenAI to generate better project metadata (with projectId for cost tracking)
       const metadata = await generateProjectMetadata({
         apiKey: settings.openaiKey,
+        projectId: newProjectId,
         url,
         title: extracted.title,
         metaDescription: extracted.description,
         pageText: extracted.text,
       });
 
-      // Step 3: Get subreddit suggestions (don't fail if this errors)
-      let subreddits = [];
-      try {
-        subreddits = await suggestSubreddits({
-          apiKey: settings.openaiKey,
-          productName: metadata.name,
-          description: metadata.description,
-          targetAudience: metadata.targetAudience,
-          keyFeatures: metadata.keyFeatures,
-        });
-        console.log('Suggested subreddits:', subreddits);
-      } catch (subredditErr) {
-        console.error('Failed to get subreddit suggestions:', subredditErr);
-        // Continue without subreddits
-      }
-
-      // Create project with AI-generated metadata and subreddit suggestions
+      // Create project with AI-generated metadata
       const newProject = {
-        id: `proj-${Date.now()}`,
+        id: newProjectId,
         name: metadata.name,
         url,
         description: metadata.description,
         targetAudience: metadata.targetAudience,
         keyFeatures: metadata.keyFeatures,
         tone: metadata.tone,
-        suggestedSubreddits: subreddits || [],
+        suggestedSubreddits: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
 
       await db.projects.add(newProject);
       await onProjectsUpdate();
+      
+      // Notify parent to refresh cost tracker
+      if (onCostUpdate) {
+        onCostUpdate();
+      }
       
       setUrl('');
       setShowCreateForm(false);
@@ -165,6 +158,7 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
       // Generate both in a single API call
       const result = await suggestSubredditsAndHashtags({
         apiKey: trimmedKey,
+        projectId: keywordsProject.id,
         productName: keywordsProject.name,
         description: keywordsProject.description,
         targetAudience: keywordsProject.targetAudience,
@@ -199,6 +193,11 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
 
       await onProjectsUpdate();
       console.log('Projects list refreshed');
+      
+      // Notify parent to refresh cost tracker
+      if (onCostUpdate) {
+        onCostUpdate();
+      }
       
       setShowKeywordsForm(false);
       setKeywordsProject(null);

@@ -268,6 +268,7 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
 
       const result = await suggestSubredditsAndHashtags({
         apiKey: settings.openaiKey,
+        projectId: activeProject.id,
         productName: activeProject.name,
         description: activeProject.description || '',
         targetAudience: activeProject.targetAudience || '',
