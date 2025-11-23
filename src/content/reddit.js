@@ -9,21 +9,65 @@ const getRedditPostContext = () => {
     let title = '';
     let content = '';
     
-    // Get title - h1 with id starting with "post-title-"
-    const titleElement = document.querySelector('h1[id^="post-title-"]');
-    if (titleElement) {
-      title = titleElement.textContent?.trim() || '';
-    }
+    // Strategy: Find the main post container first, then extract from within it
+    // This ensures we get the current post, not comments or other posts
     
-    // Get content - div with id ending with "-post-rtjson-content"
-    const contentElement = document.querySelector('[id$="-post-rtjson-content"]');
-    if (contentElement) {
-      content = contentElement.textContent?.trim() || '';
+    // Find the main post container - look for shreddit-post with visible attribute
+    const mainPost = document.querySelector('shreddit-post[tabindex="-1"]') ||
+                     document.querySelector('shreddit-post:not([id*="comment"])') ||
+                     document.querySelector('main shreddit-post');
+    
+    if (mainPost) {
+      console.log('Found main post container:', mainPost.id);
+      
+      // Get title from within the main post
+      const titleElement = mainPost.querySelector('h1[id^="post-title-"]') ||
+                          mainPost.querySelector('h1') ||
+                          document.querySelector('h1[id^="post-title-"]');
+      if (titleElement) {
+        title = titleElement.textContent?.trim() || '';
+      }
+      
+      // Get content from within the main post - try multiple selectors
+      let contentElement = mainPost.querySelector('div[slot="text-body"]') ||
+                          mainPost.querySelector('[id$="-post-rtjson-content"]') ||
+                          mainPost.querySelector('.text-neutral-content') ||
+                          mainPost.querySelector('[data-click-id="text"]');
+      
+      if (contentElement) {
+        content = contentElement.textContent?.trim() || '';
+        console.log('Found content element:', {
+          tag: contentElement.tagName,
+          class: contentElement.className,
+          id: contentElement.id,
+          contentLength: content.length
+        });
+      }
+    } else {
+      console.warn('Could not find main post container, trying fallback selectors');
+      
+      // Fallback: Try to get title and content without post container
+      const titleElement = document.querySelector('h1[id^="post-title-"]');
+      if (titleElement) {
+        title = titleElement.textContent?.trim() || '';
+      }
+      
+      // Try to find content in main content area
+      const contentElement = document.querySelector('main [slot="text-body"]') ||
+                            document.querySelector('main [id$="-post-rtjson-content"]') ||
+                            document.querySelector('main .text-neutral-content');
+      
+      if (contentElement) {
+        content = contentElement.textContent?.trim() || '';
+      }
     }
 
     console.log('Extracted Reddit context:', {
       title: title.substring(0, 100),
-      content: content.substring(0, 100)
+      content: content.substring(0, 100),
+      titleLength: title.length,
+      contentLength: content.length,
+      url: window.location.href
     });
 
     return {
