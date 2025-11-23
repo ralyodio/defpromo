@@ -115,9 +115,10 @@ export const generateContent = async ({
  * @param {string} params.platform - Platform name for platform-specific constraints (optional)
  * @param {boolean} params.includeLink - Whether to include product link (optional)
  * @param {string} params.productUrl - Product URL to include (optional)
- * @returns {Promise<string[]>} Array of generated variations
+ * @param {boolean} params.generateTitle - Whether to generate a title for the post (optional)
+ * @returns {Promise<string[]|Object>} Array of generated variations, or object with title and variations
  */
-export const generateVariations = async ({ projectId, count = 5, pageContext, platform, includeLink = false, productUrl = '', ...params }) => {
+export const generateVariations = async ({ projectId, count = 5, pageContext, platform, includeLink = false, productUrl = '', generateTitle = false, ...params }) => {
   if (!params.apiKey) {
     throw new Error('OpenAI API key is required');
   }
@@ -130,6 +131,7 @@ export const generateVariations = async ({ projectId, count = 5, pageContext, pl
     productUrl,
     requestVariations: true,
     variationCount: count,
+    generateTitle,
   });
 
   try {
@@ -192,6 +194,30 @@ export const generateVariations = async ({ projectId, count = 5, pageContext, pl
       throw new Error('No content generated from OpenAI');
     }
 
+    // If title generation was requested, parse title and content separately
+    if (generateTitle) {
+      const titleMatch = content.match(/^TITLE:\s*(.+?)(?:\n|$)/i);
+      const title = titleMatch ? titleMatch[1].trim() : '';
+      
+      // Remove title line from content
+      const contentWithoutTitle = titleMatch
+        ? content.substring(titleMatch[0].length).trim()
+        : content;
+      
+      // Split variations
+      const variations = contentWithoutTitle
+        .split(/\n\n+|\n\d+\.\s+/)
+        .map(v => v.trim())
+        .filter(v => v.length > 10)
+        .slice(0, count);
+
+      // Return object with title and variations
+      return {
+        title,
+        variations: variations.length > 0 ? variations : [contentWithoutTitle.trim()],
+      };
+    }
+
     // Split by double newlines or numbered lists, clean up
     const variations = content
       .split(/\n\n+|\n\d+\.\s+/)
@@ -228,6 +254,7 @@ const buildPrompt = ({
   productUrl,
   requestVariations,
   variationCount,
+  generateTitle,
 }) => {
   let prompt = '';
 
@@ -271,6 +298,8 @@ ${charLimit ? `\nCRITICAL CHARACTER LIMIT: Each comment MUST be under ${charLimi
 Generate ${variationCount} variations, each on its own line, separated by blank lines. No numbering, no JSON, just plain text comments.`;
   } else if (type === 'post') {
     // Post generation - more substantial content
+    const needsTitle = generateTitle;
+    
     prompt = `Generate ${variationCount} engaging social media posts to promote "${productName}".
 
 Product Description: ${description}`;
@@ -290,6 +319,13 @@ Product Description: ${description}`;
     prompt += `\nTone: ${tone}`;
     prompt += `\n${charLimit ? `Character Limit: ${charLimit} (${platform})` : ''}`;
 
+    if (needsTitle) {
+      prompt += `\n\n⚠️ IMPORTANT: First line MUST be the title in this exact format:
+TITLE: Your catchy title here (max 300 characters)
+
+Then provide ${variationCount} post variations below.`;
+    }
+
     prompt += `\n\nCreate ${variationCount} unique social media posts that:
 1. Are substantial posts (not just short comments)
 2. Tell a story or share valuable insights
@@ -307,6 +343,7 @@ Each post should take a different angle:
 - Industry insight with product mention
 - Question or engagement-focused post
 
+${needsTitle ? `\n⚠️ REMEMBER: Start your response with "TITLE: [your title]" on the first line!\n` : ''}
 ${includeLink && productUrl ? `When including the link ${productUrl}, integrate it naturally into the post - don't just append it at the end. Make it feel like a natural part of the story or call-to-action.\n` : ''}
 Return each variation as plain text, one per line, separated by blank lines. No numbering, no JSON formatting.`;
   } else {

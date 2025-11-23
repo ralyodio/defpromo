@@ -21,12 +21,38 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
   const [generatedSearchKeywords, setGeneratedSearchKeywords] = useState([]);
   const [loadingKeywords, setLoadingKeywords] = useState(false);
   const [includeLink, setIncludeLink] = useState(false);
+  const [generatedTitle, setGeneratedTitle] = useState('');
+  const [showTitleField, setShowTitleField] = useState(false);
 
   useEffect(() => {
     if (activeProject) {
       loadHistory();
     }
   }, [activeProject]);
+
+  // Detect if we're on a platform that supports titles
+  useEffect(() => {
+    const detectTitleSupport = async () => {
+      try {
+        const api = typeof browser !== 'undefined' ? browser : chrome;
+        const tabs = await api.tabs.query({ active: true, currentWindow: true });
+        if (tabs && tabs.length > 0 && tabs[0]?.url) {
+          const url = tabs[0].url;
+          // Platforms that support title + content for posts
+          const supportsTitles = url.includes('reddit.com') ||
+                                 url.includes('hackernews.com') ||
+                                 url.includes('indiehackers.com') ||
+                                 url.includes('dev.to') ||
+                                 url.includes('hashnode.com');
+          setShowTitleField(supportsTitles && contentType === 'post');
+        }
+      } catch (err) {
+        console.log('Could not detect title support:', err);
+      }
+    };
+    
+    detectTitleSupport();
+  }, [contentType]);
 
   const loadHistory = async () => {
     try {
@@ -184,16 +210,34 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
         includeLink: includeLink,
         productUrl: activeProject.url || '',
         count: 5,
+        generateTitle: showTitleField,
       });
 
+      // Handle response - could be array or object with title
+      let variationsArray;
+      let title = '';
+      
+      if (showTitleField && generated.title) {
+        // Response includes title
+        title = generated.title;
+        variationsArray = generated.variations || [];
+      } else if (Array.isArray(generated)) {
+        // Response is just variations array
+        variationsArray = generated;
+      } else {
+        // Fallback
+        variationsArray = [generated];
+      }
+
       // Create variation objects with IDs
-      const variationObjects = generated.map((text, index) => ({
+      const variationObjects = variationsArray.map((text, index) => ({
         id: `var-${Date.now()}-${index}`,
         text,
         createdAt: Date.now(),
       }));
 
       setVariations(variationObjects);
+      setGeneratedTitle(title);
       setShowContextEditor(false);
 
       // Save to database
@@ -353,7 +397,7 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
     await handleCopy(variation.text);
   };
 
-  const handleFillForm = async (text, variationId) => {
+  const handleFillForm = async (text, variationId, title = '') => {
     // Clear previous messages
     setError(null);
     setSuccess(null);
@@ -391,7 +435,7 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
       else if (url.includes('stacker.news')) platform = 'stacker';
 
       // Define the function to inject
-      const injectFunc = (commentText) => {
+      const injectFunc = (commentText, postTitle) => {
           // Helper function to fill element
           const fillElement = (element, text) => {
             if (!element) return false;
@@ -514,6 +558,40 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
             
             return false;
           };
+
+          // Fill title field if provided (for Reddit posts, etc.)
+          if (postTitle) {
+            const titleSelectors = [
+              // Reddit - title input
+              'input[name="title"]',
+              'input[placeholder*="Title"]',
+              'faceplate-textarea[name="title"] textarea',
+              
+              // Dev.to
+              'input[placeholder*="Post Title"]',
+              
+              // Hacker News
+              'input[name="title"]',
+              
+              // IndieHackers
+              'input[placeholder*="Title"]',
+              
+              // Hashnode
+              'input[placeholder*="Article Title"]',
+            ];
+            
+            for (const selector of titleSelectors) {
+              const titleElement = document.querySelector(selector);
+              if (titleElement && titleElement.offsetParent !== null) {
+                titleElement.focus();
+                titleElement.value = postTitle;
+                titleElement.dispatchEvent(new Event('input', { bubbles: true }));
+                titleElement.dispatchEvent(new Event('change', { bubbles: true }));
+                console.log('✓ Title filled using selector:', selector);
+                break;
+              }
+            }
+          }
 
           // Priority selectors for specific platforms
           const prioritySelectors = [
@@ -638,15 +716,15 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
       if (isFirefox) {
         // Firefox Manifest V2: Use tabs.executeScript
         results = await api.tabs.executeScript(tab.id, {
-          code: `(${injectFunc.toString()})(${JSON.stringify(text)});`
+          code: `(${injectFunc.toString()})(${JSON.stringify(text)}, ${JSON.stringify(title)});`
         });
       } else {
         // Chrome Manifest V3: Use scripting.executeScript
         results = await api.scripting.executeScript({
           target: { tabId: tab.id },
           func: injectFunc,
-        args: [text],
-      });
+          args: [text, title],
+        });
       }
 
       // Check result
@@ -888,13 +966,19 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
                   </div>
                 ) : (
                   <div>
+                    {showTitleField && generatedTitle && (
+                      <div className="w-full mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                        <span className="font-semibold text-blue-700">Title:</span>{' '}
+                        <span className="text-gray-700">{generatedTitle}</span>
+                      </div>
+                    )}
                     <p className="text-gray-900 mb-3 whitespace-pre-wrap">{variation.text}</p>
                     <div className="flex gap-2 flex-wrap">
                       <button
-                        onClick={() => handleFillForm(variation.text, variation.id)}
+                        onClick={() => handleFillForm(variation.text, variation.id, showTitleField ? generatedTitle : '')}
                         className="btn btn-primary text-sm"
                       >
-                        Fill Form
+                        {showTitleField ? 'Fill Title & Content' : 'Fill Form'}
                       </button>
                       <button
                         onClick={() => handleUseVariation(variation)}
