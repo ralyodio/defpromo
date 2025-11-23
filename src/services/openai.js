@@ -147,7 +147,7 @@ export const generateVariations = async ({ projectId, count = 5, pageContext, pl
           {
             role: 'system',
             content:
-              'You are a helpful social media expert. Generate authentic, contextual content that provides value. For comments, be genuinely helpful to the original poster while naturally mentioning relevant products when appropriate. Return each variation as a plain text string, one per line, without JSON formatting, numbering, or markdown.',
+              'You are a helpful social media expert. Generate authentic, contextual content that provides value. For posts, write naturally in multiple paragraphs like a real person sharing their experience. For comments, be genuinely helpful to the original poster while naturally mentioning relevant products when appropriate. Avoid AI-sounding language, corporate speak, and obvious marketing patterns. Write conversationally with natural flow and rhythm.',
           },
           {
             role: 'user',
@@ -155,7 +155,7 @@ export const generateVariations = async ({ projectId, count = 5, pageContext, pl
           },
         ],
         temperature: 0.9,
-        max_tokens: 1500,
+        max_tokens: 2500,
       }),
     });
 
@@ -300,7 +300,7 @@ Generate ${variationCount} variations, each on its own line, separated by blank 
     // Post generation - more substantial content
     const needsTitle = generateTitle;
     
-    prompt = `Generate ${variationCount} engaging social media posts to promote "${productName}".
+    prompt = `Generate ${variationCount} engaging, authentic social media posts to promote "${productName}".
 
 Product Description: ${description}`;
 
@@ -326,26 +326,54 @@ TITLE: Your catchy title here (max 300 characters)
 Then provide ${variationCount} post variations below.`;
     }
 
-    prompt += `\n\nCreate ${variationCount} unique social media posts that:
-1. Are substantial posts (not just short comments)
-2. Tell a story or share valuable insights
-3. Highlight the product's benefits naturally
-4. Include engaging hooks to capture attention
-5. Feel authentic and conversational (not overly salesy)
-6. Are complete standalone posts that work on any platform
-${includeLink && productUrl ? `7. Include the link ${productUrl} naturally in the post` : ''}
-${charLimit ? `${includeLink ? '8' : '7'}. Stay under ${charLimit} characters` : ''}
+    prompt += `\n\nCreate ${variationCount} unique, long-form social media posts that:
 
-Each post should take a different angle:
-- Problem/solution approach
-- Personal story or testimonial style
-- Feature highlight with benefits
-- Industry insight with product mention
-- Question or engagement-focused post
+CRITICAL REQUIREMENTS:
+1. Write in MULTIPLE PARAGRAPHS (2-4 paragraphs per post)
+2. Each paragraph should be 2-4 sentences long
+3. Use natural paragraph breaks (double line breaks between paragraphs)
+4. Write like a REAL PERSON sharing their experience or insights
+5. Avoid obvious AI patterns like:
+   - Overly formal language
+   - Bullet points or numbered lists in the post body
+   - Generic phrases like "game-changer" or "revolutionize"
+   - Excessive use of emojis or hashtags
+   - Corporate marketing speak
+
+CONTENT STYLE:
+- Start with a relatable hook or personal observation
+- Build context naturally in the middle paragraphs
+- Mention the product organically as part of the narrative
+- End with genuine reflection or subtle call-to-action
+- Use conversational language with natural flow
+- Include specific details that make it feel authentic
+- Vary sentence length and structure for natural rhythm
+
+${includeLink && productUrl ? `LINK INTEGRATION:
+- Weave the link ${productUrl} naturally into the narrative
+- Don't just append it at the end
+- Make it feel like a natural reference point in your story
+` : ''}
+
+${charLimit ? `CHARACTER LIMIT: Stay under ${charLimit} characters total (${platform})
+` : 'LENGTH: Aim for 200-400 words per post (substantial but not overwhelming)'}
+
+Each post should take a different narrative approach:
+1. Personal discovery story (how you found/started using it)
+2. Problem-to-solution journey (specific challenge it solved)
+3. Behind-the-scenes insight (what makes it different)
+4. Comparative perspective (why you chose this over alternatives)
+5. Future-focused vision (how it's changing your workflow/life)
 
 ${needsTitle ? `\n⚠️ REMEMBER: Start your response with "TITLE: [your title]" on the first line!\n` : ''}
-${includeLink && productUrl ? `When including the link ${productUrl}, integrate it naturally into the post - don't just append it at the end. Make it feel like a natural part of the story or call-to-action.\n` : ''}
-Return each variation as plain text, one per line, separated by blank lines. No numbering, no JSON formatting.`;
+
+FORMATTING:
+- Use double line breaks between paragraphs
+- Write naturally without markdown formatting
+- No bullet points, no numbered lists in post body
+- No hashtags within the post text (save those for the end if needed)
+
+Return each variation as plain text with natural paragraph breaks, separated by blank lines between variations. No numbering, no JSON formatting.`;
   } else {
     // Generic comment generation (fallback)
     prompt = `Generate a comment to subtly promote "${productName}".

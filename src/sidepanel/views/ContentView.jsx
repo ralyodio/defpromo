@@ -562,7 +562,11 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
           // Fill title field if provided (for Reddit posts, etc.)
           if (postTitle) {
             const titleSelectors = [
-              // Reddit - title input
+              // Reddit - new design with nested textarea
+              'div.label-container.interior-label textarea#innerTextArea',
+              'textarea#innerTextArea',
+              
+              // Reddit - title input (older designs)
               'input[name="title"]',
               'input[placeholder*="Title"]',
               'faceplate-textarea[name="title"] textarea',
@@ -968,8 +972,19 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
                   <div>
                     {showTitleField && generatedTitle && (
                       <div className="w-full mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
-                        <span className="font-semibold text-blue-700">Title:</span>{' '}
-                        <span className="text-gray-700">{generatedTitle}</span>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-semibold text-blue-700">Title:</span>{' '}
+                            <span className="text-gray-700">{generatedTitle}</span>
+                          </div>
+                          <button
+                            onClick={() => handleCopy(generatedTitle)}
+                            className="ml-2 px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors"
+                            title="Copy title to clipboard"
+                          >
+                            Copy Title
+                          </button>
+                        </div>
                       </div>
                     )}
                     <p className="text-gray-900 mb-3 whitespace-pre-wrap">{variation.text}</p>
@@ -984,7 +999,7 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
                         onClick={() => handleUseVariation(variation)}
                         className="btn btn-secondary text-sm"
                       >
-                        Copy
+                        Copy Content
                       </button>
                       <button
                         onClick={() => handleEdit(index)}
