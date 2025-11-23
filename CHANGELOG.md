@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2025-11-23
+
+### Fixed
+- **Cost Tracker UI**: Fixed race condition where cost tracker UI wasn't updating after API calls
+  - Added 100ms delay to ensure database writes complete before reading updated costs
+  - Cost data was being saved correctly but UI wasn't refreshing to display new values
+  - Now properly updates when `onCostUpdate()` callback is triggered
+
+### Changed
+- **Version Bump**: Updated version from 1.3.9 to 1.4.0 across all manifests
+
 ## [1.3.9] - 2025-11-23
 
 ### Fixed
