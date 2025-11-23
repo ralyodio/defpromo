@@ -13,12 +13,20 @@ const CostTracker = ({ activeProject, projects = [], refreshKey = 0 }) => {
 
   useEffect(() => {
     console.log('CostTracker useEffect triggered - refreshKey:', refreshKey, 'activeProject:', activeProject?.id);
-    // Add a small delay to ensure database writes have completed
+    // Initial load with small delay to ensure database writes have completed
     const timeoutId = setTimeout(() => {
       loadCosts();
     }, 100);
     
-    return () => clearTimeout(timeoutId);
+    // Set up polling to check for cost updates every 2 seconds
+    const pollInterval = setInterval(() => {
+      loadCosts();
+    }, 2000);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(pollInterval);
+    };
   }, [activeProject, refreshKey]);
 
   const loadCosts = async () => {
