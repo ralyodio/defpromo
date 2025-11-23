@@ -1,11 +1,11 @@
 {
   "name": "defpromo",
-  "version": "1.3.7",
+  "version": "1.3.8",
   "description": "",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
-    "build": "BROWSER=chrome vite build && BROWSER=chrome node scripts/post-build.js && cd dist/chrome && zip -r chrome.zip .",
+    "build": "pnpm build:all",
     "build:chrome": "BROWSER=chrome vite build && BROWSER=chrome node scripts/post-build.js && cd dist/chrome && zip -r chrome.zip .",
     "build:firefox": "BROWSER=firefox vite build && BROWSER=firefox node scripts/post-build.js && cd dist/firefox && zip -r firefox.zip .",
     "build:safari": "BROWSER=safari vite build && BROWSER=safari node scripts/post-build.js && cd dist/safari && zip -r safari.zip .",
