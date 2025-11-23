@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, exportAllData, importAllData } from '../../storage/db';
+import { getLogs, clearLogs } from '../../services/logger';
 
 const SettingsView = () => {
   const [settings, setSettings] = useState({
@@ -9,9 +10,12 @@ const SettingsView = () => {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [logs, setLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
 
   useEffect(() => {
     loadSettings();
+    loadLogs();
   }, []);
 
   const loadSettings = async () => {
@@ -75,6 +79,75 @@ const SettingsView = () => {
       window.location.reload();
     } catch (error) {
       setMessage({ type: 'error', text: `Import failed: ${error.message}` });
+    }
+  };
+
+  const loadLogs = async () => {
+    try {
+      setLogsLoading(true);
+      const recentLogs = await getLogs(100);
+      setLogs(recentLogs);
+    } catch (error) {
+      console.error('Failed to load logs:', error);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  const handleCopyLogs = async () => {
+    try {
+      const logsText = logs
+        .map((log) => {
+          const contextStr = log.context && Object.keys(log.context).length > 0
+            ? ` ${JSON.stringify(log.context)}`
+            : '';
+          return `${log.timestamp} [${log.level.toUpperCase()}] ${log.message}${contextStr}`;
+        })
+        .join('\n');
+      
+      await navigator.clipboard.writeText(logsText);
+      setMessage({ type: 'success', text: 'Logs copied to clipboard!' });
+    } catch (error) {
+      setMessage({ type: 'error', text: `Failed to copy logs: ${error.message}` });
+    }
+  };
+
+  const handleClearLogs = async () => {
+    if (!confirm('Are you sure you want to clear all logs? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const count = await clearLogs();
+      setLogs([]);
+      setMessage({ type: 'success', text: `Cleared ${count} log entries` });
+    } catch (error) {
+      setMessage({ type: 'error', text: `Failed to clear logs: ${error.message}` });
+    }
+  };
+
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  };
+
+  const getLevelColor = (level) => {
+    switch (level) {
+      case 'error':
+        return 'text-red-600 bg-red-50';
+      case 'warn':
+        return 'text-yellow-600 bg-yellow-50';
+      case 'debug':
+        return 'text-purple-600 bg-purple-50';
+      case 'info':
+      default:
+        return 'text-blue-600 bg-blue-50';
     }
   };
 
@@ -208,6 +281,75 @@ const SettingsView = () => {
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="card mt-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">System Logs</h3>
+          <div className="flex gap-2">
+            <button
+              onClick={handleCopyLogs}
+              disabled={logs.length === 0}
+              className="btn btn-secondary text-xs py-1 px-3"
+              title="Copy all logs to clipboard"
+            >
+              Copy Logs
+            </button>
+            <button
+              onClick={handleClearLogs}
+              disabled={logs.length === 0}
+              className="btn btn-secondary text-xs py-1 px-3"
+              title="Clear all logs"
+            >
+              Clear Logs
+            </button>
+          </div>
+        </div>
+
+        {logsLoading ? (
+          <div className="text-center py-8 text-gray-500">Loading logs...</div>
+        ) : logs.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">No logs available</div>
+        ) : (
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {logs.map((log) => (
+              <div
+                key={log.id}
+                className="p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  <span
+                    className={`text-xs font-semibold px-2 py-1 rounded ${getLevelColor(log.level)}`}
+                  >
+                    {log.level.toUpperCase()}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="text-xs text-gray-500 font-mono">
+                        {formatTimestamp(log.timestamp)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-900 break-words">{log.message}</p>
+                    {log.context && Object.keys(log.context).length > 0 && (
+                      <details className="mt-2">
+                        <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+                          View context
+                        </summary>
+                        <pre className="mt-1 text-xs bg-gray-100 p-2 rounded overflow-x-auto">
+                          {JSON.stringify(log.context, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p className="text-xs text-gray-500 mt-4">
+          Showing last {logs.length} log entries. Logs help debug issues with cost tracking and other features.
+        </p>
       </div>
 
       <div className="card mt-6 bg-gray-50">

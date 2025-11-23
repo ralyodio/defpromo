@@ -4,6 +4,7 @@
  */
 
 import { db } from '../storage/db.js';
+import { logInfo, logWarn, logError, logDebug } from './logger.js';
 
 /**
  * Pricing information for different API services and models
@@ -51,10 +52,10 @@ export const recordApiUsage = async ({
   cost,
 }) => {
   try {
-    console.log('recordApiUsage called with:', { projectId, service, model, inputTokens, outputTokens, cost });
+    await logDebug('Recording API usage', { projectId, service, model, inputTokens, outputTokens, cost });
     
     if (!projectId) {
-      console.warn('⚠️ No projectId provided, skipping API usage recording');
+      await logWarn('No projectId provided, skipping API usage recording');
       return null;
     }
     
@@ -70,12 +71,24 @@ export const recordApiUsage = async ({
     };
 
     await db.apiUsage.add(usageRecord);
-    console.log('✅ API usage recorded successfully:', usageRecord);
-    console.log(`💰 Cost: $${cost.toFixed(4)} (${inputTokens} input + ${outputTokens} output tokens)`);
+    await logInfo(`API usage recorded: $${cost.toFixed(4)}`, {
+      recordId: usageRecord.id,
+      projectId,
+      service,
+      model,
+      inputTokens,
+      outputTokens,
+      cost,
+    });
     return usageRecord.id;
   } catch (error) {
-    console.error('❌ Failed to record API usage:', error);
-    console.error('Error details:', error.message, error.stack);
+    await logError('Failed to record API usage', {
+      error: error.message,
+      stack: error.stack,
+      projectId,
+      service,
+      model,
+    });
     throw new Error(`Failed to record API usage: ${error.message}`);
   }
 };
@@ -93,7 +106,7 @@ export const calculateCost = ({ service, model, inputTokens, outputTokens }) => 
   const pricing = API_PRICING[service]?.[model];
 
   if (!pricing) {
-    console.warn(`No pricing information for ${service}/${model}`);
+    logWarn(`No pricing information for ${service}/${model}`, { service, model });
     return 0;
   }
 
@@ -111,18 +124,21 @@ export const calculateCost = ({ service, model, inputTokens, outputTokens }) => 
  */
 export const getProjectCost = async (projectId) => {
   try {
-    console.log('getProjectCost called for projectId:', projectId);
+    await logDebug('Getting project cost', { projectId });
     const usageRecords = await db.apiUsage
       .where('projectId')
       .equals(projectId)
       .toArray();
 
-    console.log('Found', usageRecords.length, 'usage records for project', projectId);
     const totalCost = usageRecords.reduce((sum, record) => sum + (record.cost || 0), 0);
-    console.log('Total cost for project', projectId, ':', totalCost);
+    await logDebug('Project cost calculated', {
+      projectId,
+      recordCount: usageRecords.length,
+      totalCost,
+    });
     return parseFloat(totalCost.toFixed(2));
   } catch (error) {
-    console.error('Failed to get project cost:', error);
+    await logError('Failed to get project cost', { error: error.message, projectId });
     return 0;
   }
 };
@@ -137,7 +153,7 @@ export const getTotalCost = async () => {
     const totalCost = usageRecords.reduce((sum, record) => sum + (record.cost || 0), 0);
     return parseFloat(totalCost.toFixed(2));
   } catch (error) {
-    console.error('Failed to get total cost:', error);
+    await logError('Failed to get total cost', { error: error.message });
     return 0;
   }
 };
@@ -165,7 +181,7 @@ export const getCostByProject = async () => {
 
     return costByProject;
   } catch (error) {
-    console.error('Failed to get cost by project:', error);
+    await logError('Failed to get cost by project', { error: error.message });
     return {};
   }
 };
@@ -222,7 +238,7 @@ export const getProjectUsageStats = async (projectId) => {
 
     return stats;
   } catch (error) {
-    console.error('Failed to get project usage stats:', error);
+    await logError('Failed to get project usage stats', { error: error.message, projectId });
     return {
       totalCalls: 0,
       totalCost: 0,
@@ -242,10 +258,10 @@ export const getProjectUsageStats = async (projectId) => {
 export const clearProjectUsage = async (projectId) => {
   try {
     const count = await db.apiUsage.where('projectId').equals(projectId).delete();
-    console.log(`Cleared ${count} usage records for project ${projectId}`);
+    await logInfo(`Cleared ${count} usage records`, { projectId, count });
     return count;
   } catch (error) {
-    console.error('Failed to clear project usage:', error);
+    await logError('Failed to clear project usage', { error: error.message, projectId });
     throw new Error(`Failed to clear project usage: ${error.message}`);
   }
 };

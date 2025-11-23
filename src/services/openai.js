@@ -4,6 +4,7 @@
  */
 
 import { recordApiUsage, calculateCost } from './apiCost.js';
+import { logError, logDebug } from './logger.js';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 const DEFAULT_MODEL = 'gpt-4o-mini';
@@ -94,14 +95,21 @@ export const generateContent = async ({
           cost,
         });
       } catch (costError) {
-        console.error('Failed to record API usage:', costError);
+        await logError('Failed to record API usage in generateContent', {
+          error: costError.message,
+          projectId,
+        });
         // Don't throw - cost tracking failure shouldn't break the main flow
       }
     }
     
     return data.choices[0]?.message?.content || '';
   } catch (error) {
-    console.error('OpenAI generation error:', error);
+    await logError('OpenAI generation error', {
+      error: error.message,
+      projectId,
+      productName,
+    });
     throw error;
   }
 };
@@ -184,7 +192,10 @@ export const generateVariations = async ({ projectId, count = 5, pageContext, pl
           cost,
         });
       } catch (costError) {
-        console.error('Failed to record API usage:', costError);
+        await logError('Failed to record API usage in generateVariations', {
+          error: costError.message,
+          projectId,
+        });
       }
     }
     
@@ -232,7 +243,11 @@ export const generateVariations = async ({ projectId, count = 5, pageContext, pl
 
     return variations;
   } catch (error) {
-    console.error('OpenAI variations error:', error);
+    await logError('OpenAI variations error', {
+      error: error.message,
+      projectId,
+      count,
+    });
     throw error;
   }
 };
@@ -488,7 +503,10 @@ Return ONLY valid JSON, no markdown or explanation.`;
           cost,
         });
       } catch (costError) {
-        console.error('Failed to record API usage:', costError);
+        await logError('Failed to record API usage in generateProjectMetadata', {
+          error: costError.message,
+          projectId,
+        });
       }
     }
     
@@ -505,7 +523,11 @@ Return ONLY valid JSON, no markdown or explanation.`;
         tone: metadata.tone || 'professional',
       };
     } catch (parseError) {
-      console.error('Failed to parse OpenAI response:', parseError);
+      await logError('Failed to parse OpenAI metadata response', {
+        error: parseError.message,
+        projectId,
+        url,
+      });
       // Fallback to basic metadata
       return {
         name: title || new URL(url).hostname,
@@ -516,7 +538,11 @@ Return ONLY valid JSON, no markdown or explanation.`;
       };
     }
   } catch (error) {
-    console.error('OpenAI metadata generation error:', error);
+    await logError('OpenAI metadata generation error', {
+      error: error.message,
+      projectId,
+      url,
+    });
     throw error;
   }
 };
@@ -612,7 +638,10 @@ Focus on subreddits that:
           cost,
         });
       } catch (costError) {
-        console.error('Failed to record API usage:', costError);
+        await logError('Failed to record API usage in suggestSubreddits', {
+          error: costError.message,
+          projectId,
+        });
       }
     }
     
@@ -622,7 +651,7 @@ Focus on subreddits that:
       return [];
     }
 
-    console.log('Raw subreddit response:', content);
+    await logDebug('Raw subreddit response received', { projectId, contentLength: content.length });
 
     // Try to parse as JSON first
     try {
@@ -631,7 +660,7 @@ Focus on subreddits that:
         return subreddits.slice(0, 10);
       }
     } catch (parseError) {
-      console.log('Not JSON, trying text parsing');
+      await logDebug('Subreddit response not JSON, trying text parsing', { projectId });
     }
 
     // Fallback: Parse as text (comma-separated, line-separated, or with r/ prefix)
@@ -643,10 +672,14 @@ Focus on subreddits that:
       .filter(s => s.length > 0)
       .slice(0, 10);
 
-    console.log('Parsed subreddits:', subreddits);
+    await logDebug('Parsed subreddits', { projectId, count: subreddits.length });
     return subreddits;
   } catch (error) {
-    console.error('Subreddit suggestion error:', error);
+    await logError('Subreddit suggestion error', {
+      error: error.message,
+      projectId,
+      productName,
+    });
     throw error;
   }
 };
@@ -727,7 +760,7 @@ Focus on hashtags that:
       return [];
     }
 
-    console.log('Raw hashtag response:', content);
+    await logDebug('Raw hashtag response received', { contentLength: content.length });
 
     // Try to parse as JSON first
     try {
@@ -736,7 +769,7 @@ Focus on hashtags that:
         return hashtags.slice(0, 10);
       }
     } catch (parseError) {
-      console.log('Not JSON, trying text parsing');
+      await logDebug('Hashtag response not JSON, trying text parsing');
     }
 
     // Fallback: Parse as text
@@ -748,10 +781,13 @@ Focus on hashtags that:
       .filter(h => h.length > 0)
       .slice(0, 10);
 
-    console.log('Parsed hashtags:', hashtags);
+    await logDebug('Parsed hashtags', { count: hashtags.length });
     return hashtags;
   } catch (error) {
-    console.error('Hashtag suggestion error:', error);
+    await logError('Hashtag suggestion error', {
+      error: error.message,
+      productName,
+    });
     throw error;
   }
 };
@@ -759,10 +795,12 @@ Focus on hashtags that:
 /**
  * Suggest subreddits, hashtags, and search keywords in a single API call
  * @param {Object} params - Parameters
+ * @param {string} params.projectId - Project ID for cost tracking (optional)
  * @returns {Promise<{subreddits: string[], hashtags: string[], searchKeywords: string[]}>}
  */
 export const suggestSubredditsAndHashtags = async ({
   apiKey,
+  projectId,
   productName,
   description,
   targetAudience,
@@ -839,13 +877,43 @@ Search Keywords should:
     }
 
     const data = await response.json();
+    
+    // Record API usage for cost tracking
+    if (projectId && data.usage) {
+      try {
+        const cost = calculateCost({
+          service: 'openai',
+          model: DEFAULT_MODEL,
+          inputTokens: data.usage.prompt_tokens || 0,
+          outputTokens: data.usage.completion_tokens || 0,
+        });
+        
+        await recordApiUsage({
+          projectId,
+          service: 'openai',
+          model: DEFAULT_MODEL,
+          inputTokens: data.usage.prompt_tokens || 0,
+          outputTokens: data.usage.completion_tokens || 0,
+          cost,
+        });
+      } catch (costError) {
+        await logError('Failed to record API usage in suggestSubredditsAndHashtags', {
+          error: costError.message,
+          projectId,
+        });
+      }
+    }
+    
     const content = data.choices[0]?.message?.content || '';
 
     if (!content) {
       return { subreddits: [], hashtags: [], searchKeywords: [] };
     }
 
-    console.log('Raw combined response:', content);
+    await logDebug('Raw combined suggestions response received', {
+      projectId,
+      contentLength: content.length,
+    });
 
     // Try to parse as JSON
     try {
@@ -885,11 +953,18 @@ Search Keywords should:
         searchKeywords: cleanSearchKeywords,
       };
     } catch (parseError) {
-      console.error('Failed to parse combined suggestions:', parseError);
+      await logError('Failed to parse combined suggestions', {
+        error: parseError.message,
+        projectId,
+      });
       return { subreddits: [], hashtags: [], searchKeywords: [] };
     }
   } catch (error) {
-    console.error('Combined suggestion error:', error);
+    await logError('Combined suggestion error', {
+      error: error.message,
+      projectId,
+      productName,
+    });
     throw error;
   }
 };

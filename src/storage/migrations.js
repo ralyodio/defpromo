@@ -8,7 +8,7 @@ import { db } from './db.js';
 /**
  * Current database version
  */
-export const CURRENT_VERSION = 2;
+export const CURRENT_VERSION = 3;
 
 /**
  * Migration functions for each version
@@ -24,6 +24,12 @@ const migrations = {
     // Add apiUsage table for tracking API costs
     // The table is automatically created by Dexie when version is upgraded
     console.log('Database upgraded to version 2 - added apiUsage table');
+  },
+  
+  3: async () => {
+    // Add logs table for system logging
+    // The table is automatically created by Dexie when version is upgraded
+    console.log('Database upgraded to version 3 - added logs table');
   },
 };
 

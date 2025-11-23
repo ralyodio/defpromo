@@ -23,6 +23,16 @@ db.version(2).stores({
   apiUsage: 'id, projectId, service, timestamp, model',
 });
 
+// Version 3 - Add logs table for system logging
+db.version(3).stores({
+  settings: 'id',
+  projects: 'id, name, createdAt, updatedAt',
+  generatedContent: 'id, projectId, type, createdAt',
+  analytics: 'id, projectId, contentId, platform, submittedAt',
+  apiUsage: 'id, projectId, service, timestamp, model',
+  logs: 'id, level, timestamp, context',
+});
+
 /**
  * Initialize the database
  * @returns {Promise<void>}
@@ -48,6 +58,7 @@ export const clearDatabase = async () => {
     await db.generatedContent.clear();
     await db.analytics.clear();
     await db.apiUsage.clear();
+    await db.logs.clear();
     console.log('Database cleared successfully');
   } catch (error) {
     console.error('Failed to clear database:', error);
@@ -75,12 +86,13 @@ export const deleteDatabase = async () => {
  */
 export const exportAllData = async () => {
   try {
-    const [settings, projects, generatedContent, analytics, apiUsage] = await Promise.all([
+    const [settings, projects, generatedContent, analytics, apiUsage, logs] = await Promise.all([
       db.settings.toArray(),
       db.projects.toArray(),
       db.generatedContent.toArray(),
       db.analytics.toArray(),
       db.apiUsage.toArray(),
+      db.logs.toArray(),
     ]);
 
     return {
@@ -92,6 +104,7 @@ export const exportAllData = async () => {
         generatedContent,
         analytics,
         apiUsage,
+        logs,
       },
     };
   } catch (error) {
@@ -118,6 +131,7 @@ export const importAllData = async (data, merge = false) => {
       generatedContent: 0,
       analytics: 0,
       apiUsage: 0,
+      logs: 0,
     };
 
     // If not merging, clear existing data first
@@ -187,6 +201,19 @@ export const importAllData = async (data, merge = false) => {
       } else {
         await db.apiUsage.bulkAdd(data.data.apiUsage);
         stats.apiUsage = data.data.apiUsage.length;
+      }
+    }
+
+    // Import logs
+    if (data.data.logs?.length > 0) {
+      if (merge) {
+        for (const log of data.data.logs) {
+          await db.logs.put(log);
+          stats.logs++;
+        }
+      } else {
+        await db.logs.bulkAdd(data.data.logs);
+        stats.logs = data.data.logs.length;
       }
     }
 
