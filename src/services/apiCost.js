@@ -80,6 +80,25 @@ export const recordApiUsage = async ({
       outputTokens,
       cost,
     });
+    
+    // Broadcast cost update to all listeners (sidepanel, popup, etc.)
+    try {
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        chrome.runtime.sendMessage({
+          type: 'COST_UPDATED',
+          data: {
+            projectId,
+            cost,
+            timestamp: usageRecord.timestamp,
+          },
+        }).catch(() => {
+          // Ignore errors if no listeners are active
+        });
+      }
+    } catch (error) {
+      // Silently fail if chrome.runtime is not available
+    }
+    
     return usageRecord.id;
   } catch (error) {
     await logError('Failed to record API usage', {

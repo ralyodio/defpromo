@@ -13,19 +13,28 @@ const CostTracker = ({ activeProject, projects = [], refreshKey = 0 }) => {
 
   useEffect(() => {
     console.log('CostTracker useEffect triggered - refreshKey:', refreshKey, 'activeProject:', activeProject?.id);
-    // Initial load with small delay to ensure database writes have completed
-    const timeoutId = setTimeout(() => {
-      loadCosts();
-    }, 100);
+    // Initial load
+    loadCosts();
     
-    // Set up polling to check for cost updates every 2 seconds
-    const pollInterval = setInterval(() => {
-      loadCosts();
-    }, 2000);
+    // Listen for cost update messages from the background script
+    const handleMessage = (message) => {
+      if (message.type === 'COST_UPDATED') {
+        console.log('Cost update message received:', message.data);
+        // Reload costs when we receive an update notification
+        loadCosts();
+      }
+    };
+    
+    // Add message listener
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      chrome.runtime.onMessage.addListener(handleMessage);
+    }
     
     return () => {
-      clearTimeout(timeoutId);
-      clearInterval(pollInterval);
+      // Remove message listener on cleanup
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        chrome.runtime.onMessage.removeListener(handleMessage);
+      }
     };
   }, [activeProject, refreshKey]);
 
