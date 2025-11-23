@@ -12,21 +12,25 @@ const CostTracker = ({ activeProject, projects = [], refreshKey = 0 }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('CostTracker useEffect triggered - refreshKey:', refreshKey, 'activeProject:', activeProject?.id);
     loadCosts();
   }, [activeProject, refreshKey]);
 
   const loadCosts = async () => {
     try {
       setLoading(true);
+      console.log('Loading costs...');
       
       // Get cost for active project
       if (activeProject?.id) {
         const cost = await getProjectCost(activeProject.id);
+        console.log('Project cost for', activeProject.id, ':', cost);
         setProjectCost(cost);
       }
       
       // Get costs for all projects
       const costs = await getCostByProject();
+      console.log('All costs:', costs);
       setAllCosts(costs);
     } catch (error) {
       console.error('Failed to load costs:', error);

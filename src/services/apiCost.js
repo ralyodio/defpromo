@@ -51,6 +51,13 @@ export const recordApiUsage = async ({
   cost,
 }) => {
   try {
+    console.log('recordApiUsage called with:', { projectId, service, model, inputTokens, outputTokens, cost });
+    
+    if (!projectId) {
+      console.warn('⚠️ No projectId provided, skipping API usage recording');
+      return null;
+    }
+    
     const usageRecord = {
       id: `${service}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       projectId,
@@ -63,10 +70,12 @@ export const recordApiUsage = async ({
     };
 
     await db.apiUsage.add(usageRecord);
-    console.log('API usage recorded:', usageRecord);
+    console.log('✅ API usage recorded successfully:', usageRecord);
+    console.log(`💰 Cost: $${cost.toFixed(4)} (${inputTokens} input + ${outputTokens} output tokens)`);
     return usageRecord.id;
   } catch (error) {
-    console.error('Failed to record API usage:', error);
+    console.error('❌ Failed to record API usage:', error);
+    console.error('Error details:', error.message, error.stack);
     throw new Error(`Failed to record API usage: ${error.message}`);
   }
 };
@@ -102,12 +111,15 @@ export const calculateCost = ({ service, model, inputTokens, outputTokens }) => 
  */
 export const getProjectCost = async (projectId) => {
   try {
+    console.log('getProjectCost called for projectId:', projectId);
     const usageRecords = await db.apiUsage
       .where('projectId')
       .equals(projectId)
       .toArray();
 
+    console.log('Found', usageRecords.length, 'usage records for project', projectId);
     const totalCost = usageRecords.reduce((sum, record) => sum + (record.cost || 0), 0);
+    console.log('Total cost for project', projectId, ':', totalCost);
     return parseFloat(totalCost.toFixed(2));
   } catch (error) {
     console.error('Failed to get project cost:', error);

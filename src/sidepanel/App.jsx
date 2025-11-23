@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../storage/db';
+import { runMigrations, needsMigration } from '../storage/migrations';
 import ErrorBoundary from '../components/ErrorBoundary';
 import Toast from '../components/Toast';
 import Loading from '../components/Loading';
@@ -20,8 +21,27 @@ const App = () => {
   const [costRefreshKey, setCostRefreshKey] = useState(0);
 
   useEffect(() => {
-    loadProjects();
+    initializeApp();
   }, []);
+
+  const initializeApp = async () => {
+    try {
+      // Check if migrations are needed
+      const migrationNeeded = await needsMigration();
+      if (migrationNeeded) {
+        console.log('Running database migrations...');
+        await runMigrations();
+        console.log('Database migrations complete');
+      }
+      
+      // Load projects after migrations
+      await loadProjects();
+    } catch (error) {
+      console.error('Failed to initialize app:', error);
+      showToast('Failed to initialize app', 'error');
+      setInitialLoading(false);
+    }
+  };
 
   const loadProjects = async () => {
     try {
@@ -50,6 +70,7 @@ const App = () => {
 
   const handleCostUpdate = () => {
     // Increment the refresh key to trigger CostTracker re-render
+    console.log('Cost update triggered, incrementing refresh key from', costRefreshKey, 'to', costRefreshKey + 1);
     setCostRefreshKey(prev => prev + 1);
   };
 

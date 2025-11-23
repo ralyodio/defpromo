@@ -6,7 +6,15 @@ import Dexie from 'dexie';
  */
 export const db = new Dexie('DefPromoDB');
 
-// Define database schema
+// Define database schema - Version 1 (original schema)
+db.version(1).stores({
+  settings: 'id',
+  projects: 'id, name, createdAt, updatedAt',
+  generatedContent: 'id, projectId, type, createdAt',
+  analytics: 'id, projectId, contentId, platform, submittedAt',
+});
+
+// Version 2 - Add apiUsage table for cost tracking
 db.version(2).stores({
   settings: 'id',
   projects: 'id, name, createdAt, updatedAt',
