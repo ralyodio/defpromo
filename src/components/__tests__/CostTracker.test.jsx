@@ -56,8 +56,8 @@ describe('CostTracker Component', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Project:')).toBeInTheDocument();
-        // Cost is displayed as $0.02 because it's >= $0.01
-        expect(screen.getByText('$0.02')).toBeInTheDocument();
+        // Cost is displayed with 4 decimal places
+        expect(screen.getByText('$0.0156')).toBeInTheDocument();
       });
     });
 
@@ -71,20 +71,21 @@ describe('CostTracker Component', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Total:')).toBeInTheDocument();
-        expect(screen.getByText('$0.04')).toBeInTheDocument();
+        // Total: 0.0156 + 0.0234 = 0.0390
+        expect(screen.getByText('$0.0390')).toBeInTheDocument();
       });
     });
   });
 
   describe('Cost Formatting', () => {
-    it('should display $0.00 for zero cost', async () => {
+    it('should display $0.0000 for zero cost', async () => {
       apiCost.getProjectCost.mockResolvedValue(0);
       apiCost.getCostByProject.mockResolvedValue({ 'proj-1': 0 });
 
       render(<CostTracker activeProject={mockActiveProject} projects={mockProjects} />);
 
       await waitFor(() => {
-        expect(screen.getByText('$0.00')).toBeInTheDocument();
+        expect(screen.getByText('$0.0000')).toBeInTheDocument();
       });
     });
 
@@ -99,14 +100,14 @@ describe('CostTracker Component', () => {
       });
     });
 
-    it('should display 2 decimal places for costs $0.01 and above', async () => {
+    it('should display 4 decimal places for all costs', async () => {
       apiCost.getProjectCost.mockResolvedValue(0.15);
       apiCost.getCostByProject.mockResolvedValue({ 'proj-1': 0.15 });
 
       render(<CostTracker activeProject={mockActiveProject} projects={mockProjects} />);
 
       await waitFor(() => {
-        expect(screen.getByText('$0.15')).toBeInTheDocument();
+        expect(screen.getByText('$0.1500')).toBeInTheDocument();
       });
     });
 
@@ -133,7 +134,7 @@ describe('CostTracker Component', () => {
       render(<CostTracker activeProject={mockActiveProject} projects={mockProjects} />);
 
       await waitFor(() => {
-        expect(screen.getByText('$0.05')).toBeInTheDocument();
+        expect(screen.getByText('$0.0500')).toBeInTheDocument();
       });
 
       // Click to open dropdown
@@ -164,7 +165,7 @@ describe('CostTracker Component', () => {
       render(<CostTracker activeProject={mockActiveProject} projects={mockProjects} />);
 
       await waitFor(() => {
-        expect(screen.getByText('$0.05')).toBeInTheDocument();
+        expect(screen.getByText('$0.0500')).toBeInTheDocument();
       });
 
       const button = screen.getByRole('button');
@@ -187,7 +188,7 @@ describe('CostTracker Component', () => {
       render(<CostTracker activeProject={mockActiveProject} projects={mockProjects} />);
 
       await waitFor(() => {
-        expect(screen.getByText('$0.05')).toBeInTheDocument();
+        expect(screen.getByText('$0.0500')).toBeInTheDocument();
       });
 
       const button = screen.getByRole('button');
@@ -208,7 +209,7 @@ describe('CostTracker Component', () => {
       render(<CostTracker activeProject={mockActiveProject} projects={mockProjects} />);
 
       await waitFor(() => {
-        expect(screen.getByText('$0.05')).toBeInTheDocument();
+        expect(screen.getByText('$0.0500')).toBeInTheDocument();
       });
 
       const button = screen.getByRole('button');
@@ -358,7 +359,7 @@ describe('CostTracker Component', () => {
       consoleError.mockRestore();
     });
 
-    it('should display $0.00 when API fails', async () => {
+    it('should display $0.0000 when API fails', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
       apiCost.getProjectCost.mockRejectedValue(new Error('API Error'));
       apiCost.getCostByProject.mockRejectedValue(new Error('API Error'));
@@ -366,7 +367,7 @@ describe('CostTracker Component', () => {
       render(<CostTracker activeProject={mockActiveProject} projects={mockProjects} />);
 
       await waitFor(() => {
-        expect(screen.getByText('$0.00')).toBeInTheDocument();
+        expect(screen.getByText('$0.0000')).toBeInTheDocument();
       });
     });
   });
@@ -379,7 +380,7 @@ describe('CostTracker Component', () => {
       render(<CostTracker activeProject={null} projects={[]} />);
 
       await waitFor(() => {
-        expect(screen.getByText('$0.00')).toBeInTheDocument();
+        expect(screen.getByText('$0.0000')).toBeInTheDocument();
       });
     });
 
@@ -393,7 +394,7 @@ describe('CostTracker Component', () => {
       render(<CostTracker activeProject={mockActiveProject} projects={mockProjects} />);
 
       await waitFor(() => {
-        expect(screen.getByText('$0.05')).toBeInTheDocument();
+        expect(screen.getByText('$0.0500')).toBeInTheDocument();
       });
 
       global.chrome = originalChrome;
@@ -409,8 +410,8 @@ describe('CostTracker Component', () => {
       render(<CostTracker activeProject={null} projects={mockProjects} />);
 
       await waitFor(() => {
-        // Total should be 0.0123 + 0.0456 + 0.0789 = 0.1368, displayed as $0.14
-        expect(screen.getByText('$0.14')).toBeInTheDocument();
+        // Total should be 0.0123 + 0.0456 + 0.0789 = 0.1368
+        expect(screen.getByText('$0.1368')).toBeInTheDocument();
       });
     });
   });

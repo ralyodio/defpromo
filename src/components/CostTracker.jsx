@@ -66,12 +66,9 @@ const CostTracker = ({ activeProject, projects = [], refreshKey = 0 }) => {
   };
 
   const formatCost = (cost) => {
-    if (cost === 0) return '$0.00';
-    if (cost < 0.01) {
-      // Show actual cost with 4 decimal places for small amounts
-      return `$${cost.toFixed(4)}`;
-    }
-    return `$${cost.toFixed(2)}`;
+    if (cost === 0) return '$0.0000';
+    // Show 4 decimal places for all amounts to track small changes
+    return `$${cost.toFixed(4)}`;
   };
 
   if (loading) {
