@@ -155,7 +155,8 @@ export const getProjectCost = async (projectId) => {
       recordCount: usageRecords.length,
       totalCost,
     });
-    return parseFloat(totalCost.toFixed(2));
+    // Keep more precision for small costs - round to 4 decimal places
+    return parseFloat(totalCost.toFixed(4));
   } catch (error) {
     await logError('Failed to get project cost', { error: error.message, projectId });
     return 0;
@@ -170,7 +171,8 @@ export const getTotalCost = async () => {
   try {
     const usageRecords = await db.apiUsage.toArray();
     const totalCost = usageRecords.reduce((sum, record) => sum + (record.cost || 0), 0);
-    return parseFloat(totalCost.toFixed(2));
+    // Keep more precision for small costs - round to 4 decimal places
+    return parseFloat(totalCost.toFixed(4));
   } catch (error) {
     await logError('Failed to get total cost', { error: error.message });
     return 0;
@@ -193,9 +195,9 @@ export const getCostByProject = async () => {
       costByProject[record.projectId] += record.cost || 0;
     }
 
-    // Round all values
+    // Round all values - keep 4 decimal places for small costs
     for (const projectId in costByProject) {
-      costByProject[projectId] = parseFloat(costByProject[projectId].toFixed(2));
+      costByProject[projectId] = parseFloat(costByProject[projectId].toFixed(4));
     }
 
     return costByProject;

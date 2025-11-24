@@ -62,12 +62,15 @@ const CostTracker = ({ activeProject, projects = [], refreshKey = 0 }) => {
   };
 
   const getTotalCost = () => {
-    return Object.values(allCosts).reduce((sum, cost) => sum + cost, 0).toFixed(2);
+    return Object.values(allCosts).reduce((sum, cost) => sum + cost, 0);
   };
 
   const formatCost = (cost) => {
     if (cost === 0) return '$0.00';
-    if (cost < 0.01) return '<$0.01';
+    if (cost < 0.01) {
+      // Show actual cost with 4 decimal places for small amounts
+      return `$${cost.toFixed(4)}`;
+    }
     return `$${cost.toFixed(2)}`;
   };
 
@@ -109,7 +112,7 @@ const CostTracker = ({ activeProject, projects = [], refreshKey = 0 }) => {
           ) : (
             <>
               <span className="text-gray-600">Total:</span>{' '}
-              <span className="font-semibold text-green-700">{formatCost(parseFloat(getTotalCost()))}</span>
+              <span className="font-semibold text-green-700">{formatCost(getTotalCost())}</span>
             </>
           )}
         </div>
@@ -149,7 +152,7 @@ const CostTracker = ({ activeProject, projects = [], refreshKey = 0 }) => {
               {/* Total Cost */}
               <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                 <div className="text-xs text-gray-600 mb-1">Total Spent (All Projects)</div>
-                <div className="text-2xl font-bold text-green-700">{formatCost(parseFloat(getTotalCost()))}</div>
+                <div className="text-2xl font-bold text-green-700">{formatCost(getTotalCost())}</div>
               </div>
 
               {/* Per-Project Breakdown */}
