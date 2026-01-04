@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "DefPromo",
-  "version": "1.4.6",
+  "version": "1.4.7",
   "description": "AI-powered social media self-promotion assistant with analytics",
   "homepage_url": "https://defpromo.com",
   "permissions": [
@@ -60,74 +60,132 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://*/*", "http://*/*"],
-      "js": ["content/content-sidebar-injector.js"],
+      "matches": [
+        "https://*/*",
+        "http://*/*"
+      ],
+      "js": [
+        "content/content-sidebar-injector.js"
+      ],
       "run_at": "document_idle",
       "all_frames": false
     },
     {
-      "matches": ["https://twitter.com/*", "https://x.com/*"],
-      "js": ["content/content-twitter.js"],
+      "matches": [
+        "https://twitter.com/*",
+        "https://x.com/*"
+      ],
+      "js": [
+        "content/content-twitter.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.linkedin.com/*"],
-      "js": ["content/content-linkedin.js"],
+      "matches": [
+        "https://www.linkedin.com/*"
+      ],
+      "js": [
+        "content/content-linkedin.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.reddit.com/*"],
-      "js": ["content/content-reddit.js"],
+      "matches": [
+        "https://www.reddit.com/*"
+      ],
+      "js": [
+        "content/content-reddit.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.facebook.com/*"],
-      "js": ["content/content-facebook.js"],
+      "matches": [
+        "https://www.facebook.com/*"
+      ],
+      "js": [
+        "content/content-facebook.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://stacker.news/*"],
-      "js": ["content/content-stacker.js"],
+      "matches": [
+        "https://stacker.news/*"
+      ],
+      "js": [
+        "content/content-stacker.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://primal.net/*"],
-      "js": ["content/content-primal.js"],
+      "matches": [
+        "https://primal.net/*"
+      ],
+      "js": [
+        "content/content-primal.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://*.slack.com/*"],
-      "js": ["content/content-slack.js"],
+      "matches": [
+        "https://*.slack.com/*"
+      ],
+      "js": [
+        "content/content-slack.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://discord.com/*"],
-      "js": ["content/content-discord.js"],
+      "matches": [
+        "https://discord.com/*"
+      ],
+      "js": [
+        "content/content-discord.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://web.telegram.org/*"],
-      "js": ["content/content-telegram.js"],
+      "matches": [
+        "https://web.telegram.org/*"
+      ],
+      "js": [
+        "content/content-telegram.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.tiktok.com/*"],
-      "js": ["content/content-tiktok.js"],
+      "matches": [
+        "https://www.tiktok.com/*"
+      ],
+      "js": [
+        "content/content-tiktok.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.instagram.com/*"],
-      "js": ["content/content-instagram.js"],
+      "matches": [
+        "https://www.instagram.com/*"
+      ],
+      "js": [
+        "content/content-instagram.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.threads.net/*"],
-      "js": ["content/content-threads.js"],
+      "matches": [
+        "https://www.threads.net/*"
+      ],
+      "js": [
+        "content/content-threads.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.youtube.com/*"],
-      "js": ["content/content-youtube.js"],
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "js": [
+        "content/content-youtube.js"
+      ],
       "run_at": "document_idle"
     }
   ],
@@ -140,7 +198,9 @@
         "src/sidebar/*.js",
         "src/sidebar/*.css"
       ],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }
