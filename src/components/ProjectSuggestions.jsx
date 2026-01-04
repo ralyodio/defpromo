@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 /**
  * Reusable component for displaying project suggestions (subreddits, hashtags, search keywords)
@@ -8,17 +8,36 @@ import React from 'react';
  * @param {string[]} props.searchKeywords - Array of search keyword strings
  * @param {Function} props.onCopy - Callback function for copying text
  * @param {boolean} props.compact - Whether to use compact styling (default: false)
+ * @param {boolean} props.editable - Whether to show edit controls (default: false)
+ * @param {Function} props.onRemoveSubreddit - Callback to remove a subreddit
+ * @param {Function} props.onRemoveHashtag - Callback to remove a hashtag
+ * @param {Function} props.onRemoveKeyword - Callback to remove a keyword
+ * @param {Function} props.onAddSubreddit - Callback to add a subreddit
+ * @param {Function} props.onAddHashtag - Callback to add a hashtag
+ * @param {Function} props.onAddKeyword - Callback to add a keyword
  */
 const ProjectSuggestions = ({ 
   subreddits = [], 
   hashtags = [], 
   searchKeywords = [], 
   onCopy,
-  compact = false 
+  compact = false,
+  editable = false,
+  onRemoveSubreddit,
+  onRemoveHashtag,
+  onRemoveKeyword,
+  onAddSubreddit,
+  onAddHashtag,
+  onAddKeyword,
 }) => {
+  const [newSubreddit, setNewSubreddit] = useState('');
+  const [newHashtag, setNewHashtag] = useState('');
+  const [newKeyword, setNewKeyword] = useState('');
+
   const hasAnySuggestions = subreddits.length > 0 || hashtags.length > 0 || searchKeywords.length > 0;
 
-  if (!hasAnySuggestions) {
+  // In editable mode, always show the component so users can add items
+  if (!hasAnySuggestions && !editable) {
     return null;
   }
 
@@ -26,16 +45,44 @@ const ProjectSuggestions = ({
   const iconSize = compact ? 'w-2.5 h-2.5' : 'w-3 h-3';
   const gapClass = compact ? 'gap-1' : 'gap-2';
 
+  const handleAddSubreddit = (e) => {
+    e.preventDefault();
+    if (newSubreddit.trim() && onAddSubreddit) {
+      // Remove r/ prefix if user included it
+      const cleaned = newSubreddit.trim().replace(/^r\//, '');
+      onAddSubreddit(cleaned);
+      setNewSubreddit('');
+    }
+  };
+
+  const handleAddHashtag = (e) => {
+    e.preventDefault();
+    if (newHashtag.trim() && onAddHashtag) {
+      // Remove # prefix if user included it
+      const cleaned = newHashtag.trim().replace(/^#/, '');
+      onAddHashtag(cleaned);
+      setNewHashtag('');
+    }
+  };
+
+  const handleAddKeyword = (e) => {
+    e.preventDefault();
+    if (newKeyword.trim() && onAddKeyword) {
+      onAddKeyword(newKeyword.trim());
+      setNewKeyword('');
+    }
+  };
+
   return (
     <div className="space-y-3">
       {/* Subreddits */}
-      {subreddits.length > 0 && (
+      {(subreddits.length > 0 || editable) && (
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className={`font-medium text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>
               Subreddits:
             </span>
-            {onCopy && (
+            {onCopy && subreddits.length > 0 && (
               <button
                 onClick={() => onCopy(subreddits.map(s => `r/${s}`).join('\n'))}
                 className="text-xs text-blue-600 hover:text-blue-800"
@@ -46,28 +93,61 @@ const ProjectSuggestions = ({
           </div>
           <div className={`flex flex-wrap ${gapClass}`}>
             {subreddits.map((subreddit) => (
-              <a
+              <div
                 key={subreddit}
-                href={`https://reddit.com/r/${subreddit}`}
-                target="_blank"
-                rel="noopener noreferrer"
                 className={`inline-flex items-center ${sizeClasses} bg-orange-50 hover:bg-orange-100 text-orange-700 rounded font-medium transition-colors`}
               >
-                r/{subreddit}
-              </a>
+                <a
+                  href={`https://reddit.com/r/${subreddit}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline"
+                >
+                  r/{subreddit}
+                </a>
+                {editable && onRemoveSubreddit && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveSubreddit(subreddit);
+                    }}
+                    className="ml-1 text-orange-500 hover:text-orange-700 font-bold"
+                    title="Remove subreddit"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             ))}
           </div>
+          {editable && onAddSubreddit && (
+            <form onSubmit={handleAddSubreddit} className="mt-2 flex gap-1">
+              <input
+                type="text"
+                value={newSubreddit}
+                onChange={(e) => setNewSubreddit(e.target.value)}
+                placeholder="Add subreddit..."
+                className="text-xs px-2 py-1 border border-gray-300 rounded flex-1 min-w-0"
+              />
+              <button
+                type="submit"
+                className="text-xs px-2 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 rounded"
+              >
+                +
+              </button>
+            </form>
+          )}
         </div>
       )}
 
       {/* Hashtags */}
-      {hashtags.length > 0 && (
+      {(hashtags.length > 0 || editable) && (
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className={`font-medium text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>
               Hashtags:
             </span>
-            {onCopy && (
+            {onCopy && hashtags.length > 0 && (
               <button
                 onClick={() => onCopy(hashtags.map(h => `#${h}`).join(' '))}
                 className="text-xs text-blue-600 hover:text-blue-800"
@@ -129,20 +209,49 @@ const ProjectSuggestions = ({
                     </svg>
                   </a>
                 </div>
+                {editable && onRemoveHashtag && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveHashtag(hashtag);
+                    }}
+                    className="ml-1 text-blue-500 hover:text-blue-700 font-bold"
+                    title="Remove hashtag"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             ))}
           </div>
+          {editable && onAddHashtag && (
+            <form onSubmit={handleAddHashtag} className="mt-2 flex gap-1">
+              <input
+                type="text"
+                value={newHashtag}
+                onChange={(e) => setNewHashtag(e.target.value)}
+                placeholder="Add hashtag..."
+                className="text-xs px-2 py-1 border border-gray-300 rounded flex-1 min-w-0"
+              />
+              <button
+                type="submit"
+                className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded"
+              >
+                +
+              </button>
+            </form>
+          )}
         </div>
       )}
 
       {/* Search Keywords */}
-      {searchKeywords.length > 0 && (
+      {(searchKeywords.length > 0 || editable) && (
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className={`font-medium text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>
               Search Keywords:
             </span>
-            {onCopy && (
+            {onCopy && searchKeywords.length > 0 && (
               <button
                 onClick={() => onCopy(searchKeywords.join(', '))}
                 className="text-xs text-blue-600 hover:text-blue-800"
@@ -193,9 +302,38 @@ const ProjectSuggestions = ({
                     </svg>
                   </a>
                 </div>
+                {editable && onRemoveKeyword && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveKeyword(keyword);
+                    }}
+                    className="ml-1 text-gray-500 hover:text-gray-700 font-bold"
+                    title="Remove keyword"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             ))}
           </div>
+          {editable && onAddKeyword && (
+            <form onSubmit={handleAddKeyword} className="mt-2 flex gap-1">
+              <input
+                type="text"
+                value={newKeyword}
+                onChange={(e) => setNewKeyword(e.target.value)}
+                placeholder="Add keyword..."
+                className="text-xs px-2 py-1 border border-gray-300 rounded flex-1 min-w-0"
+              />
+              <button
+                type="submit"
+                className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
+              >
+                +
+              </button>
+            </form>
+          )}
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { db } from '../../storage/db';
 import { scrapeAndExtract } from '../../services/scraper';
 import { generateProjectMetadata, suggestSubredditsAndHashtags } from '../../services/openai';
@@ -230,6 +230,112 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
     }
   };
 
+  // Handlers for manually adding/removing subreddits, hashtags, and keywords
+  const handleRemoveSubreddit = useCallback(async (projectId, subreddit) => {
+    try {
+      const project = await db.projects.get(projectId);
+      if (!project) return;
+      
+      const updatedSubreddits = (project.suggestedSubreddits || []).filter(s => s !== subreddit);
+      await db.projects.update(projectId, {
+        suggestedSubreddits: updatedSubreddits,
+        updatedAt: Date.now(),
+      });
+      await onProjectsUpdate();
+    } catch (err) {
+      setError(`Failed to remove subreddit: ${err.message}`);
+    }
+  }, [onProjectsUpdate]);
+
+  const handleAddSubreddit = useCallback(async (projectId, subreddit) => {
+    try {
+      const project = await db.projects.get(projectId);
+      if (!project) return;
+      
+      const currentSubreddits = project.suggestedSubreddits || [];
+      // Avoid duplicates
+      if (currentSubreddits.includes(subreddit)) return;
+      
+      await db.projects.update(projectId, {
+        suggestedSubreddits: [...currentSubreddits, subreddit],
+        updatedAt: Date.now(),
+      });
+      await onProjectsUpdate();
+    } catch (err) {
+      setError(`Failed to add subreddit: ${err.message}`);
+    }
+  }, [onProjectsUpdate]);
+
+  const handleRemoveHashtag = useCallback(async (projectId, hashtag) => {
+    try {
+      const project = await db.projects.get(projectId);
+      if (!project) return;
+      
+      const updatedHashtags = (project.suggestedHashtags || []).filter(h => h !== hashtag);
+      await db.projects.update(projectId, {
+        suggestedHashtags: updatedHashtags,
+        updatedAt: Date.now(),
+      });
+      await onProjectsUpdate();
+    } catch (err) {
+      setError(`Failed to remove hashtag: ${err.message}`);
+    }
+  }, [onProjectsUpdate]);
+
+  const handleAddHashtag = useCallback(async (projectId, hashtag) => {
+    try {
+      const project = await db.projects.get(projectId);
+      if (!project) return;
+      
+      const currentHashtags = project.suggestedHashtags || [];
+      // Avoid duplicates
+      if (currentHashtags.includes(hashtag)) return;
+      
+      await db.projects.update(projectId, {
+        suggestedHashtags: [...currentHashtags, hashtag],
+        updatedAt: Date.now(),
+      });
+      await onProjectsUpdate();
+    } catch (err) {
+      setError(`Failed to add hashtag: ${err.message}`);
+    }
+  }, [onProjectsUpdate]);
+
+  const handleRemoveKeyword = useCallback(async (projectId, keyword) => {
+    try {
+      const project = await db.projects.get(projectId);
+      if (!project) return;
+      
+      const updatedKeywords = (project.suggestedSearchKeywords || []).filter(k => k !== keyword);
+      await db.projects.update(projectId, {
+        suggestedSearchKeywords: updatedKeywords,
+        updatedAt: Date.now(),
+      });
+      await onProjectsUpdate();
+    } catch (err) {
+      setError(`Failed to remove keyword: ${err.message}`);
+    }
+  }, [onProjectsUpdate]);
+
+  const handleAddKeyword = useCallback(async (projectId, keyword) => {
+    try {
+      const project = await db.projects.get(projectId);
+      if (!project) return;
+      
+      const currentKeywords = project.suggestedSearchKeywords || [];
+      // Avoid duplicates
+      if (currentKeywords.includes(keyword)) return;
+      
+      await db.projects.update(projectId, {
+        suggestedSearchKeywords: [...currentKeywords, keyword],
+        updatedAt: Date.now(),
+      });
+      await onProjectsUpdate();
+    } catch (err) {
+      setError(`Failed to add keyword: ${err.message}`);
+    }
+  }, [onProjectsUpdate]);
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -447,16 +553,24 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
                             {(project.suggestedSubreddits?.length > 0 || project.suggestedHashtags?.length > 0 || project.suggestedSearchKeywords?.length > 0) ? 'Refresh' : 'Generate'}
                           </button>
                         </div>
-                        {(project.suggestedSubreddits?.length > 0 || project.suggestedHashtags?.length > 0 || project.suggestedSearchKeywords?.length > 0) ? (
+                        <div onClick={(e) => e.stopPropagation()}>
                           <ProjectSuggestions
                             subreddits={project.suggestedSubreddits || []}
                             hashtags={project.suggestedHashtags || []}
                             searchKeywords={project.suggestedSearchKeywords || []}
                             compact={true}
+                            editable={true}
+                            onRemoveSubreddit={(subreddit) => handleRemoveSubreddit(project.id, subreddit)}
+                            onAddSubreddit={(subreddit) => handleAddSubreddit(project.id, subreddit)}
+                            onRemoveHashtag={(hashtag) => handleRemoveHashtag(project.id, hashtag)}
+                            onAddHashtag={(hashtag) => handleAddHashtag(project.id, hashtag)}
+                            onRemoveKeyword={(keyword) => handleRemoveKeyword(project.id, keyword)}
+                            onAddKeyword={(keyword) => handleAddKeyword(project.id, keyword)}
                           />
-                        ) : (
-                          <p className="text-xs text-gray-500 italic">
-                            Click "Generate" to get marketing suggestions
+                        </div>
+                        {!(project.suggestedSubreddits?.length > 0 || project.suggestedHashtags?.length > 0 || project.suggestedSearchKeywords?.length > 0) && (
+                          <p className="text-xs text-gray-500 italic mt-2">
+                            Click "Generate" to get AI suggestions, or add your own above
                           </p>
                         )}
                       </div>
