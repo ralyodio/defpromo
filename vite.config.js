@@ -41,9 +41,14 @@ export default defineConfig({
       input: {
         sidebar: resolve(__dirname, 'src/sidebar/index.html'),
         sidepanel: resolve(__dirname, 'src/sidepanel/index.html'),
-        popup: resolve(__dirname, 'src/popup/index.html'),
-        background: resolve(__dirname, 'src/background/service-worker.js'),
-        'background-firefox': resolve(__dirname, 'src/background/background-firefox.js'),
+        // Use Firefox-specific popup for Firefox builds
+        popup: resolve(__dirname, process.env.BROWSER === 'firefox'
+          ? 'src/popup/index-firefox.html'
+          : 'src/popup/index.html'),
+        // Only include service-worker for Chrome/Safari, background-firefox for Firefox
+        ...(process.env.BROWSER === 'firefox'
+          ? { 'background-firefox': resolve(__dirname, 'src/background/background-firefox.js') }
+          : { background: resolve(__dirname, 'src/background/service-worker.js') }),
         'content-sidebar-injector': resolve(__dirname, 'src/content/sidebar-injector.js'),
         'content-twitter': resolve(__dirname, 'src/content/twitter.js'),
         'content-linkedin': resolve(__dirname, 'src/content/linkedin.js'),
