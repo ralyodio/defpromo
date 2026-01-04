@@ -6,20 +6,23 @@
   "scripts": {
     "dev": "vite",
     "build": "pnpm build:all",
-    "build:chrome": "BROWSER=chrome vite build && BROWSER=chrome node scripts/post-build.js && cd dist/chrome && zip -r chrome.zip .",
-    "build:firefox": "BROWSER=firefox vite build && BROWSER=firefox node scripts/post-build.js && cd dist/firefox && zip -r firefox.zip .",
-    "build:safari": "BROWSER=safari vite build && BROWSER=safari node scripts/post-build.js && cd dist/safari && zip -r safari.zip .",
+    "build:chrome": "BROWSER=chrome vite build && BROWSER=chrome node scripts/post-build.js && cd dist/chrome && zip -r ../chrome.zip .",
+    "build:firefox": "BROWSER=firefox vite build && BROWSER=firefox node scripts/post-build.js && cd dist/firefox && zip -r ../firefox.zip .",
+    "build:safari": "BROWSER=safari vite build && BROWSER=safari node scripts/post-build.js && cd dist/safari && zip -r ../safari.zip .",
     "build:all": "pnpm build:chrome && pnpm build:firefox && pnpm build:safari",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "lint": "eslint src --ext js,jsx",
-    "lint:ext": "web-ext lint --config web-ext-config.js",
+    "lint:ext": "web-ext lint --config web-ext-config.mjs",
     "lint:ext:chrome": "web-ext lint --source-dir dist/chrome",
     "lint:ext:firefox": "web-ext lint --source-dir dist/firefox",
     "lint:ext:safari": "web-ext lint --source-dir dist/safari",
-    "format": "prettier --write \"src/**/*.{js,jsx,css}\""
+    "format": "prettier --write \"src/**/*.{js,jsx,css}\"",
+    "version:patch": "node --experimental-strip-types scripts/bump-version.ts patch",
+    "version:minor": "node --experimental-strip-types scripts/bump-version.ts minor",
+    "version:major": "node --experimental-strip-types scripts/bump-version.ts major"
   },
   "repository": {
     "type": "git",
