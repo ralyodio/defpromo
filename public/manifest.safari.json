@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "DefPromo",
-  "version": "1.4.7",
+  "version": "1.4.8",
   "description": "AI-powered social media self-promotion assistant with analytics",
   "homepage_url": "https://defpromo.com",
   "permissions": [
