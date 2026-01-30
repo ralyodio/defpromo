@@ -36,6 +36,7 @@
     "type": "module"
   },
   "action": {
+    "default_popup": "src/popup/index.html",
     "default_icon": {
       "16": "icons/icon-16x16.png",
       "32": "icons/icon-32x32.png",
