@@ -37,10 +37,10 @@
   },
   "action": {
     "default_icon": {
-      "16": "icons/favicon.svg",
-      "32": "icons/favicon.svg",
-      "48": "icons/favicon.svg",
-      "128": "icons/favicon.svg"
+      "16": "icons/icon-16x16.png",
+      "32": "icons/icon-32x32.png",
+      "48": "icons/icon-48x48.png",
+      "128": "icons/icon-128x128.png"
     }
   },
   "commands": {
@@ -53,10 +53,10 @@
     }
   },
   "icons": {
-    "16": "icons/favicon.svg",
-    "32": "icons/favicon.svg",
-    "48": "icons/favicon.svg",
-    "128": "icons/favicon.svg"
+    "16": "icons/icon-16x16.png",
+    "32": "icons/icon-32x32.png",
+    "48": "icons/icon-48x48.png",
+    "128": "icons/icon-128x128.png"
   },
   "content_scripts": [
     {
