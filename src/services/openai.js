@@ -1,18 +1,60 @@
 /**
  * OpenAI Service
- * Handles AI content generation using OpenAI's API
+ * Handles AI content generation using OpenAI's API or compatible providers
+ * 
+ * Supports custom API endpoints for:
+ * - OpenAI (default)
+ * - AnyRouter, OpenRouter, Groq
+ * - Local models via Ollama, LM Studio, etc.
+ * - Any OpenAI-compatible API
  */
 
 import { recordApiUsage, calculateCost } from './apiCost.js';
 import { logError, logDebug } from './logger.js';
 
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+const DEFAULT_API_URL = 'https://api.openai.com/v1/chat/completions';
 const DEFAULT_MODEL = 'gpt-4o-mini';
 
 /**
- * Generate promotional content using OpenAI
+ * Get the API URL to use (custom or default OpenAI)
+ * @param {string} customUrl - Custom API URL from settings (optional)
+ * @returns {string} The API URL to use
+ */
+const getApiUrl = (customUrl) => {
+  if (customUrl && customUrl.trim()) {
+    // Ensure URL ends with /chat/completions if it doesn't already
+    let url = customUrl.trim();
+    if (!url.endsWith('/chat/completions')) {
+      // Remove trailing slash if present
+      url = url.replace(/\/$/, '');
+      // Check if it ends with /v1
+      if (url.endsWith('/v1')) {
+        url += '/chat/completions';
+      } else if (!url.includes('/chat/completions')) {
+        // Assume it's a base URL, add /v1/chat/completions
+        url += '/v1/chat/completions';
+      }
+    }
+    return url;
+  }
+  return DEFAULT_API_URL;
+};
+
+/**
+ * Get the model to use (custom or default)
+ * @param {string} customModel - Custom model from settings (optional)
+ * @returns {string} The model to use
+ */
+const getModel = (customModel) => {
+  return (customModel && customModel.trim()) || DEFAULT_MODEL;
+};
+
+/**
+ * Generate promotional content using OpenAI or compatible API
  * @param {Object} params - Generation parameters
- * @param {string} params.apiKey - OpenAI API key
+ * @param {string} params.apiKey - API key
+ * @param {string} params.apiUrl - Custom API URL (optional, defaults to OpenAI)
+ * @param {string} params.model - Custom model (optional, defaults to gpt-4o-mini)
  * @param {string} params.projectId - Project ID for cost tracking (optional)
  * @param {string} params.productName - Product name
  * @param {string} params.description - Product description
@@ -24,6 +66,8 @@ const DEFAULT_MODEL = 'gpt-4o-mini';
  */
 export const generateContent = async ({
   apiKey,
+  apiUrl,
+  model,
   projectId,
   productName,
   description,
@@ -33,8 +77,11 @@ export const generateContent = async ({
   keyFeatures = [],
 }) => {
   if (!apiKey) {
-    throw new Error('OpenAI API key is required');
+    throw new Error('API key is required');
   }
+
+  const effectiveUrl = getApiUrl(apiUrl);
+  const effectiveModel = getModel(model);
 
   const prompt = buildPrompt({
     productName,
@@ -46,14 +93,14 @@ export const generateContent = async ({
   });
 
   try {
-    const response = await fetch(OPENAI_API_URL, {
+    const response = await fetch(effectiveUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: DEFAULT_MODEL,
+        model: effectiveModel,
         messages: [
           {
             role: 'system',
@@ -71,7 +118,8 @@ export const generateContent = async ({
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`API error: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`);
     }
 
     const data = await response.json();
@@ -81,15 +129,15 @@ export const generateContent = async ({
       try {
         const cost = calculateCost({
           service: 'openai',
-          model: DEFAULT_MODEL,
+          model: effectiveModel,
           inputTokens: data.usage.prompt_tokens || 0,
           outputTokens: data.usage.completion_tokens || 0,
         });
         
         await recordApiUsage({
           projectId,
-          service: 'openai',
-          model: DEFAULT_MODEL,
+          service: effectiveUrl.includes('openai.com') ? 'openai' : 'custom',
+          model: effectiveModel,
           inputTokens: data.usage.prompt_tokens || 0,
           outputTokens: data.usage.completion_tokens || 0,
           cost,
@@ -105,10 +153,11 @@ export const generateContent = async ({
     
     return data.choices[0]?.message?.content || '';
   } catch (error) {
-    await logError('OpenAI generation error', {
+    await logError('AI generation error', {
       error: error.message,
       projectId,
       productName,
+      apiUrl: effectiveUrl,
     });
     throw error;
   }
@@ -117,6 +166,8 @@ export const generateContent = async ({
 /**
  * Generate multiple content variations
  * @param {Object} params - Generation parameters
+ * @param {string} params.apiUrl - Custom API URL (optional, defaults to OpenAI)
+ * @param {string} params.model - Custom model (optional, defaults to gpt-4o-mini)
  * @param {string} params.projectId - Project ID for cost tracking (optional)
  * @param {number} params.count - Number of variations to generate (default: 5)
  * @param {Object} params.pageContext - Current page context (optional)
@@ -126,10 +177,13 @@ export const generateContent = async ({
  * @param {boolean} params.generateTitle - Whether to generate a title for the post (optional)
  * @returns {Promise<string[]|Object>} Array of generated variations, or object with title and variations
  */
-export const generateVariations = async ({ projectId, count = 5, pageContext, platform, includeLink = false, productUrl = '', generateTitle = false, ...params }) => {
+export const generateVariations = async ({ projectId, count = 5, pageContext, platform, includeLink = false, productUrl = '', generateTitle = false, apiUrl, model, ...params }) => {
   if (!params.apiKey) {
-    throw new Error('OpenAI API key is required');
+    throw new Error('API key is required');
   }
+
+  const effectiveUrl = getApiUrl(apiUrl);
+  const effectiveModel = getModel(model);
 
   const prompt = buildPrompt({
     ...params,
@@ -143,14 +197,14 @@ export const generateVariations = async ({ projectId, count = 5, pageContext, pl
   });
 
   try {
-    const response = await fetch(OPENAI_API_URL, {
+    const response = await fetch(effectiveUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${params.apiKey}`,
       },
       body: JSON.stringify({
-        model: DEFAULT_MODEL,
+        model: effectiveModel,
         messages: [
           {
             role: 'system',
@@ -454,7 +508,7 @@ Generate a JSON object with:
 Return ONLY valid JSON, no markdown or explanation.`;
 
   try {
-    const response = await fetch(OPENAI_API_URL, {
+    const response = await fetch(DEFAULT_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -589,7 +643,7 @@ Focus on subreddits that:
 5. Are specific and niche (not too generic)`;
 
   try {
-    const response = await fetch(OPENAI_API_URL, {
+    const response = await fetch(DEFAULT_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -725,7 +779,7 @@ Focus on hashtags that:
 5. Mix popular and niche tags`;
 
   try {
-    const response = await fetch(OPENAI_API_URL, {
+    const response = await fetch(DEFAULT_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -848,7 +902,7 @@ Search Keywords should:
 - Help discover relevant content and communities`;
 
   try {
-    const response = await fetch(OPENAI_API_URL, {
+    const response = await fetch(DEFAULT_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

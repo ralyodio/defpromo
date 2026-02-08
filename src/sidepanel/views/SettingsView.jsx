@@ -5,6 +5,8 @@ import { getLogs, clearLogs } from '../../services/logger';
 const SettingsView = () => {
   const [settings, setSettings] = useState({
     openaiKey: '',
+    openaiApiUrl: '',
+    openaiModel: '',
     scraperKey: '',
     scraperService: 'scrapingbee',
   });
@@ -46,6 +48,8 @@ const SettingsView = () => {
       if (saved) {
         setSettings({
           openaiKey: saved.openaiKey || '',
+          openaiApiUrl: saved.openaiApiUrl || '',
+          openaiModel: saved.openaiModel || '',
           scraperKey: saved.scraperKey || '',
           scraperService: saved.scraperService || 'scrapingbee',
         });
@@ -218,6 +222,34 @@ const SettingsView = () => {
               />
               <p className="text-xs text-gray-500 mt-1">
                 Required for AI content generation
+              </p>
+            </div>
+
+            <div>
+              <label className="label">Custom API URL (Optional)</label>
+              <input
+                type="text"
+                value={settings.openaiApiUrl}
+                onChange={(e) => setSettings({ ...settings, openaiApiUrl: e.target.value })}
+                className="input"
+                placeholder="https://api.openai.com (default)"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Use OpenAI-compatible APIs: OpenRouter, Groq, AnyRouter, Ollama, etc.
+              </p>
+            </div>
+
+            <div>
+              <label className="label">Custom Model (Optional)</label>
+              <input
+                type="text"
+                value={settings.openaiModel}
+                onChange={(e) => setSettings({ ...settings, openaiModel: e.target.value })}
+                className="input"
+                placeholder="gpt-4o-mini (default)"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Model to use for generation (e.g., gpt-4o, claude-3-opus, llama-3.1-70b)
               </p>
             </div>
 
