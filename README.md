@@ -12,7 +12,10 @@ AI-powered social media self-promotion assistant with comprehensive analytics an
 
 ## Features
 
-- 🤖 **AI Content Generation**: Generate multiple promotional content variations using OpenAI
+- 🤖 **AI Content Generation**: Posts and comments written through [myna](https://mynaposter.com) by default, over [OpenConnection](https://logicsrc.com/openconnection); or with your own OpenAI key
+- 🔌 **No keys by default**: paste one setup token from [mynaposter.com/connect](https://mynaposter.com/connect); DefPromo claims it once, and myna lists it and can revoke it
+- 📄 **Reads the site's own files first**: a product's `/.well-known/openprofile.md` and `/llms.txt` before any scraping
+- 🗂️ **Real forums from [nichedb.dev](https://nichedb.dev)**: suggestions name boards where your keywords are already being discussed, plus a submit link to the directory
 - 📊 **Analytics Dashboard**: Track performance across platforms with detailed metrics
 - 🔄 **A/B Testing**: Compare content variation performance
 - 💾 **Data Portability**: Export/import all data as JSON for cross-browser/machine use
@@ -100,11 +103,8 @@ See [Apple's documentation](https://developer.apple.com/documentation/safariserv
 1. Click the DefPromo extension icon in your browser toolbar (or press `Ctrl+Shift+S` / `Cmd+Shift+S`)
 2. The sidebar will appear on the right side of the page
 3. Navigate to **Settings** tab
-4. Add your API keys:
-   - **OpenAI API Key**: Required for AI content generation
-   - **Web Scraper API Key**: Required for automatic product information extraction
-   - Choose your preferred scraper service (ScrapingBee, ScraperAPI, or Browserless)
-5. Click "Save Settings"
+4. Under **Provider**, keep **myna** (the default): open [mynaposter.com/connect](https://mynaposter.com/connect), sign in, tick the scopes, copy the setup token, paste it into DefPromo and click **Connect**. The token works once and expires; myna lists DefPromo among your connected apps and can revoke it any time. From a terminal, `myna connect token` makes the same token
+5. Or choose **Your own keys** and add an OpenAI key, plus a scraper key (ScrapingBee, ScraperAPI or Browserless) for sites that serve no `openprofile.md` or `llms.txt`, then click "Save Settings"
 
 ### Creating a Project
 

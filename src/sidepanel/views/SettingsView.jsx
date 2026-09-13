@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { db, exportAllData, importAllData } from '../../storage/db';
 import { getLogs, clearLogs } from '../../services/logger';
+import { connect as connectMyna, clearConnection, getConnection, MYNA_CONNECT_URL, SCOPES_USED } from '../../services/myna';
+import { PROVIDERS, DEFAULT_PROVIDER } from '../../services/provider';
 
 const SettingsView = () => {
   const [settings, setSettings] = useState({
     openaiKey: '',
     scraperKey: '',
     scraperService: 'scrapingbee',
+    provider: DEFAULT_PROVIDER,
   });
+  const [myna, setMyna] = useState(null);
+  const [setupToken, setSetupToken] = useState('');
+  const [connecting, setConnecting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [logs, setLogs] = useState([]);
@@ -48,8 +54,10 @@ const SettingsView = () => {
           openaiKey: saved.openaiKey || '',
           scraperKey: saved.scraperKey || '',
           scraperService: saved.scraperService || 'scrapingbee',
+          provider: saved.provider === PROVIDERS.openai ? PROVIDERS.openai : DEFAULT_PROVIDER,
         });
       }
+      setMyna(await getConnection());
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -61,15 +69,52 @@ const SettingsView = () => {
     setMessage(null);
 
     try {
-      await db.settings.put({
-        id: 'main',
-        ...settings,
-      });
+      // Merge: the myna connection lives on the same record and must survive a save.
+      const existing = (await db.settings.get('main')) || {};
+      await db.settings.put({ ...existing, id: 'main', ...settings });
       setMessage({ type: 'success', text: 'Settings saved successfully!' });
     } catch (error) {
       setMessage({ type: 'error', text: `Failed to save settings: ${error.message}` });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleProviderChange = async (provider) => {
+    setSettings((current) => ({ ...current, provider }));
+    try {
+      const existing = (await db.settings.get('main')) || {};
+      await db.settings.put({ ...existing, id: 'main', provider });
+    } catch (error) {
+      setMessage({ type: 'error', text: `Failed to save provider: ${error.message}` });
+    }
+  };
+
+  const handleConnectMyna = async (e) => {
+    e.preventDefault();
+    setConnecting(true);
+    setMessage(null);
+    try {
+      const connection = await connectMyna(setupToken);
+      setMyna(connection);
+      setSetupToken('');
+      await handleProviderChange(PROVIDERS.myna);
+      setMessage({ type: 'success', text: `Connected to myna${connection.principal?.name ? ` as ${connection.principal.name}` : ''}.` });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message });
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const handleDisconnectMyna = async () => {
+    if (!confirm('Disconnect from myna? You can paste a new setup token any time.')) return;
+    try {
+      await clearConnection();
+      setMyna(null);
+      setMessage({ type: 'success', text: 'Disconnected from myna.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: `Failed to disconnect: ${error.message}` });
     }
   };
 
@@ -189,9 +234,83 @@ const SettingsView = () => {
         </div>
       )}
 
+      <div className="card mb-6">
+        <h3 className="text-lg font-semibold mb-1">Provider</h3>
+        <p className="text-xs text-gray-500 mb-4">
+          Who does the thinking. myna needs no keys: paste one setup token and it writes through your own account.
+        </p>
+        <div className="space-y-2 mb-4">
+          <label className="flex items-start gap-2 text-sm cursor-pointer">
+            <input
+              type="radio"
+              name="provider"
+              value={PROVIDERS.myna}
+              checked={settings.provider === PROVIDERS.myna}
+              onChange={() => handleProviderChange(PROVIDERS.myna)}
+              className="mt-1"
+            />
+            <span>
+              <strong>myna</strong> (default): mynaposter.com over{' '}
+              <a href="https://logicsrc.com/openconnection" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700">
+                OpenConnection
+              </a>
+              . No API keys; revocable from your myna at any time.
+            </span>
+          </label>
+          <label className="flex items-start gap-2 text-sm cursor-pointer">
+            <input
+              type="radio"
+              name="provider"
+              value={PROVIDERS.openai}
+              checked={settings.provider === PROVIDERS.openai}
+              onChange={() => handleProviderChange(PROVIDERS.openai)}
+              className="mt-1"
+            />
+            <span>
+              <strong>Your own keys</strong>: OpenAI for writing, and a scraper for sites that serve no OpenProfile.md or llms.txt.
+            </span>
+          </label>
+        </div>
+        {myna ? (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm">
+            <div className="font-medium text-green-800">
+              Connected to myna{myna.principal?.name ? ` as ${myna.principal.name}` : ''}
+            </div>
+            <div className="text-xs text-green-700 mt-1">Scopes: {(myna.scopes || []).join(', ') || 'none'}</div>
+            {myna.connectedAt && <div className="text-xs text-green-700">Since {new Date(myna.connectedAt).toLocaleString()}</div>}
+            <button type="button" onClick={handleDisconnectMyna} className="btn btn-secondary text-xs py-1 px-3 mt-2">
+              Disconnect
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleConnectMyna} className="space-y-2">
+            <label className="label">Setup token</label>
+            <textarea
+              value={setupToken}
+              onChange={(e) => setSetupToken(e.target.value)}
+              className="input font-mono text-xs"
+              rows={3}
+              placeholder="Paste the setup token from mynaposter.com/connect"
+            />
+            <p className="text-xs text-gray-500">
+              Get one at{' '}
+              <a href={MYNA_CONNECT_URL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700">
+                {MYNA_CONNECT_URL}
+              </a>{' '}
+              or run <code>myna connect token</code>. It works once and expires. Scopes DefPromo uses:{' '}
+              {Object.keys(SCOPES_USED).join(', ')}.
+            </p>
+            <button type="submit" disabled={connecting || !setupToken.trim()} className="btn btn-primary">
+              {connecting ? 'Connecting...' : 'Connect'}
+            </button>
+          </form>
+        )}
+      </div>
+
       <form onSubmit={handleSave} className="space-y-6">
         <div className="card">
-          <h3 className="text-lg font-semibold mb-4">API Keys</h3>
+          <h3 className="text-lg font-semibold mb-1">Your own keys</h3>
+          <p className="text-xs text-gray-500 mb-4">Used only when the provider above is set to your own keys.</p>
 
           <div className="space-y-4">
             <div>
@@ -217,7 +336,7 @@ const SettingsView = () => {
                 placeholder="sk-..."
               />
               <p className="text-xs text-gray-500 mt-1">
-                Required for AI content generation
+                Used for writing when myna is not the provider
               </p>
             </div>
 
@@ -263,7 +382,7 @@ const SettingsView = () => {
                 placeholder="Your scraper API key"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Required for automatic product information extraction
+                Used only for sites that serve no OpenProfile.md or llms.txt
               </p>
             </div>
           </div>

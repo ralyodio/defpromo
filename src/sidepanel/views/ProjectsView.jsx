@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { db } from '../../storage/db';
-import { scrapeAndExtract } from '../../services/scraper';
-import { generateProjectMetadata, suggestSubredditsAndHashtags } from '../../services/openai';
+import { analyzeProject, suggestPlaces } from '../../services/provider';
 import ProjectSuggestions from '../../components/ProjectSuggestions';
 
 const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpdate, onCostUpdate }) => {
@@ -21,39 +20,10 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
     setError(null);
 
     try {
-      // Get API keys from settings
-      const settings = await db.settings.get('main');
-      if (!settings?.scraperKey) {
-        setError('Please configure your Browserless API key in Settings');
-        setLoading(false);
-        return;
-      }
-
-      if (!settings?.openaiKey) {
-        setError('Please configure your OpenAI API key in Settings');
-        setLoading(false);
-        return;
-      }
-
-      // Step 1: Scrape the URL using Browserless
-      const extracted = await scrapeAndExtract({
-        url,
-        apiKey: settings.scraperKey,
-        service: 'browserless',
-      });
-
-      // Step 2: Create project first to get an ID for cost tracking
+      // The provider (myna by default) reads the site's own OpenProfile.md and
+      // llms.txt before its HTML, and answers with the project's brief.
       const newProjectId = `proj-${Date.now()}`;
-      
-      // Step 3: Use OpenAI to generate better project metadata (with projectId for cost tracking)
-      const metadata = await generateProjectMetadata({
-        apiKey: settings.openaiKey,
-        projectId: newProjectId,
-        url,
-        title: extracted.title,
-        metaDescription: extracted.description,
-        pageText: extracted.text,
-      });
+      const metadata = await analyzeProject({ url, projectId: newProjectId });
 
       // Create project with AI-generated metadata
       const newProject = {
@@ -64,7 +34,10 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
         targetAudience: metadata.targetAudience,
         keyFeatures: metadata.keyFeatures,
         tone: metadata.tone,
+        readFrom: metadata.readFrom || [],
         suggestedSubreddits: [],
+        suggestedForums: [],
+        suggestedDirectories: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -132,39 +105,9 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
     setError(null);
 
     try {
-      const settings = await db.settings.get('main');
-      console.log('Settings retrieved:', settings ? 'Found' : 'Not found');
-      console.log('OpenAI key present:', settings?.openaiKey ? 'Yes' : 'No');
-      console.log('OpenAI key length:', settings?.openaiKey?.length || 0);
-      console.log('OpenAI key starts with:', settings?.openaiKey?.substring(0, 7) || 'N/A');
-      
-      if (!settings?.openaiKey) {
-        setError('Please configure your OpenAI API key in Settings. Current settings: ' + JSON.stringify(settings || {}));
-        setLoading(false);
-        return;
-      }
-
-      // Trim the key to remove any whitespace
-      const trimmedKey = settings.openaiKey.trim();
-      console.log('Generating subreddits and hashtags for:', keywordsProject.name, 'with keywords:', keywords);
-      console.log('Using API key (trimmed, first 7 chars):', trimmedKey.substring(0, 7));
-      console.log('Project details:', {
-        name: keywordsProject.name,
-        description: keywordsProject.description,
-        targetAudience: keywordsProject.targetAudience,
-        keyFeatures: keywordsProject.keyFeatures,
-      });
-
-      // Generate both in a single API call
-      const result = await suggestSubredditsAndHashtags({
-        apiKey: trimmedKey,
-        projectId: keywordsProject.id,
-        productName: keywordsProject.name,
-        description: keywordsProject.description,
-        targetAudience: keywordsProject.targetAudience,
-        keyFeatures: keywordsProject.keyFeatures,
-        keywords: keywords,
-      });
+      // Through the provider: myna by default, your own key otherwise. Forums
+      // come from nichedb.dev either way.
+      const result = await suggestPlaces({ project: keywordsProject, keywords });
 
       console.log('API call completed. Result:', result);
       console.log('Got subreddits:', result.subreddits);
@@ -185,6 +128,8 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
         suggestedSubreddits: result.subreddits || [],
         suggestedHashtags: result.hashtags || [],
         suggestedSearchKeywords: result.searchKeywords || [],
+        suggestedForums: result.forums || [],
+        suggestedDirectories: result.directories || [],
         marketingKeywords: keywords, // Save keywords for future use
         updatedAt: Date.now(),
       });
@@ -207,10 +152,10 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
       let errorMessage = `Failed to generate subreddits: ${err.message}`;
       
       // Provide helpful guidance for common errors
-      if (err.message?.includes('401')) {
-        errorMessage += '\n\n⚠️ Your OpenAI API key appears to be invalid or missing. Please:\n1. Go to Settings\n2. Re-enter your OpenAI API key\n3. Save and try again';
+      if (err.code === 'not-ready' || err.message?.includes('401')) {
+        errorMessage += '\n\nCheck the provider in Settings: connect myna with a setup token, or enter your own OpenAI key.';
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -558,6 +503,8 @@ const ProjectsView = ({ projects, activeProject, onProjectChange, onProjectsUpda
                             subreddits={project.suggestedSubreddits || []}
                             hashtags={project.suggestedHashtags || []}
                             searchKeywords={project.suggestedSearchKeywords || []}
+                            forums={project.suggestedForums || []}
+                            directories={project.suggestedDirectories || []}
                             compact={true}
                             editable={true}
                             onRemoveSubreddit={(subreddit) => handleRemoveSubreddit(project.id, subreddit)}

@@ -20,6 +20,8 @@ const ProjectSuggestions = ({
   subreddits = [], 
   hashtags = [], 
   searchKeywords = [], 
+  forums = [],
+  directories = [],
   onCopy,
   compact = false,
   editable = false,
@@ -34,7 +36,7 @@ const ProjectSuggestions = ({
   const [newHashtag, setNewHashtag] = useState('');
   const [newKeyword, setNewKeyword] = useState('');
 
-  const hasAnySuggestions = subreddits.length > 0 || hashtags.length > 0 || searchKeywords.length > 0;
+  const hasAnySuggestions = subreddits.length > 0 || hashtags.length > 0 || searchKeywords.length > 0 || forums.length > 0 || directories.length > 0;
 
   // In editable mode, always show the component so users can add items
   if (!hasAnySuggestions && !editable) {
@@ -334,6 +336,48 @@ const ProjectSuggestions = ({
               </button>
             </form>
           )}
+        </div>
+      )}
+
+      {/* Forums from nichedb.dev: boards where these words are already being said */}
+      {forums.length > 0 && (
+        <div>
+          <span className={`font-medium text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>Forums:</span>
+          <div className={`flex flex-wrap ${gapClass} mt-1`}>
+            {forums.map((forum) => (
+              <a
+                key={forum.url}
+                href={forum.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${sizeClasses} bg-green-50 text-green-800 rounded border border-green-200 hover:bg-green-100`}
+                title={forum.url}
+              >
+                {forum.name}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Directories to submit the product to */}
+      {directories.length > 0 && (
+        <div>
+          <span className={`font-medium text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>Submit to:</span>
+          <div className={`flex flex-wrap ${gapClass} mt-1`}>
+            {directories.map((directory) => (
+              <a
+                key={directory.url}
+                href={directory.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${sizeClasses} bg-purple-50 text-purple-800 rounded border border-purple-200 hover:bg-purple-100`}
+                title={directory.url}
+              >
+                {directory.name}
+              </a>
+            ))}
+          </div>
         </div>
       )}
     </div>

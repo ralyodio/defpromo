@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-09-13
+
+### Added
+- **myna as the default provider**, over [OpenConnection](https://logicsrc.com/openconnection): paste one setup token from mynaposter.com/connect, DefPromo claims it once for a scoped bearer, and myna writes posts, comments and suggestions through your own account. No OpenAI key, no scraper key. Revocable from your myna; a revoked connection says so and links back.
+- **Site files before scraping**: a product's `/.well-known/openprofile.md` and `/llms.txt` are read first (by myna, or by DefPromo when using your own keys), so a site that describes itself needs no scraper at all.
+- **Forums and a directory from nichedb.dev**: suggestions now include real boards where your keywords are already being discussed, and a link to submit the product to nichedb.dev.
+- **Activity back to myna**: with the `activity:write` scope, a post filled in through DefPromo is reported to myna so its history and recap see it.
+- Settings: a Provider card (myna by default, or your own keys), connect and disconnect, and the keys card kept for the second choice.
+- Host permissions for mynaposter.com and nichedb.dev in every manifest.
+
+### Changed
+- The views call one provider facade (`src/services/provider.js`) instead of OpenAI and the scraper directly; the OpenAI and scraper services are unchanged and still serve the own-keys path.
+- PRIVACY.md now says what leaves the browser under each provider.
+
 ## [1.4.0] - 2025-11-23
 
 ### Fixed
