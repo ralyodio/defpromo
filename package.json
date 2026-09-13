@@ -32,6 +32,7 @@
   "author": "",
   "license": "ISC",
   "type": "module",
+  "packageManager": "pnpm@11.18.0",
   "bugs": {
     "url": "https://github.com/ralyodio/defpromo/issues"
   },

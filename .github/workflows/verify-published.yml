@@ -1,0 +1,85 @@
+name: Verify Published Versions
+
+# CI going green is not evidence that anything reached a user. The Chrome
+# publish can be gated after a successful upload and AMO sits in a human
+# review queue. This job asks the stores what they actually serve and fails
+# when that trails the newest tag. Same job marksyncr.com runs.
+
+on:
+  schedule:
+    - cron: "23 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Compare stores against the newest tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Load environment variables
+        env:
+          ENV_CONTENT: ${{ secrets.ENV_FILE }}
+        run: |
+          while IFS='=' read -r key value; do
+            [[ -z "$key" || "$key" =~ ^# ]] && continue
+            [[ -n "$value" ]] && echo "::add-mask::$value"
+            echo "${key}=${value}" >> "$GITHUB_ENV"
+          done <<< "$ENV_CONTENT"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve the newest released version
+        id: tag
+        run: |
+          TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          if [[ -z "$TAG" ]]; then
+            echo "::error::No release tag found"
+            exit 1
+          fi
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "Newest tag: $TAG"
+
+      - name: Ask the stores what they serve
+        env:
+          RELEASED: ${{ steps.tag.outputs.version }}
+          EXTENSION_ID: ${{ env.CHROME_EXTENSION_ID || 'efdlekcpbjccbilfonhbdicfoaklanap' }}
+        run: |
+          behind=0
+
+          # Chrome: the update server is the only honest source. It returns the
+          # version real browsers are handed, not the dashboard's draft.
+          CHROME_XML=$(curl -sS --max-time 30 \
+            "https://clients2.google.com/service/update2/crx?response=updatecheck&prodversion=140.0&acceptformat=crx2,crx3&x=id%3D${EXTENSION_ID}%26uc" || true)
+          CHROME_VER=$(printf '%s' "$CHROME_XML" | grep -oP '<updatecheck[^>]*\sversion="\K[0-9][0-9.]*' | head -1)
+          if [[ -z "$CHROME_VER" ]]; then
+            echo "::warning::Chrome update server returned no version"
+          elif [[ "$CHROME_VER" != "$RELEASED" ]]; then
+            echo "::error::Chrome serves $CHROME_VER, newest tag is $RELEASED"
+            behind=1
+          else
+            echo "Chrome serves $CHROME_VER"
+          fi
+
+          # Firefox: the public add-on API says what the listing serves.
+          AMO_VER=$(curl -sS --max-time 30 "https://addons.mozilla.org/api/v5/addons/addon/defpromo/" | jq -r '.current_version.version // empty' || true)
+          if [[ -z "$AMO_VER" ]]; then
+            echo "::warning::AMO returned no version"
+          elif [[ "$AMO_VER" != "$RELEASED" ]]; then
+            echo "::error::Firefox Add-ons serves $AMO_VER, newest tag is $RELEASED"
+            behind=1
+          else
+            echo "Firefox serves $AMO_VER"
+          fi
+
+          {
+            echo "| Store | Serves | Newest tag |"
+            echo "|---|---|---|"
+            echo "| Chrome | ${CHROME_VER:-unknown} | $RELEASED |"
+            echo "| Firefox | ${AMO_VER:-unknown} | $RELEASED |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit $behind
