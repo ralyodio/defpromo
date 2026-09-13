@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../storage/db';
-import { generateVariations, suggestSubredditsAndHashtags } from '../../services/openai';
+import { writeVariations, suggestPlaces, reportActivity } from '../../services/provider';
 import ProjectSuggestions from '../../components/ProjectSuggestions';
 
 const ContentView = ({ activeProject, onCostUpdate }) => {
@@ -19,6 +19,7 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
   const [generatedSubreddits, setGeneratedSubreddits] = useState([]);
   const [generatedHashtags, setGeneratedHashtags] = useState([]);
   const [generatedSearchKeywords, setGeneratedSearchKeywords] = useState([]);
+  const [generatedForums, setGeneratedForums] = useState([]);
   const [loadingKeywords, setLoadingKeywords] = useState(false);
   const [includeLink, setIncludeLink] = useState(false);
   const [generatedTitle, setGeneratedTitle] = useState('');
@@ -171,12 +172,6 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
     setError(null);
 
     try {
-      // Get OpenAI API key from settings
-      const settings = await db.settings.get('main');
-      if (!settings?.openaiKey) {
-        throw new Error('Please configure your OpenAI API key in Settings');
-      }
-
       // Use provided context or null for posts
       const context = pageContext || (contentType === 'comment' ? { title: contextTitle, content: contextContent } : null);
 
@@ -195,39 +190,18 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
         console.log('Could not detect platform:', err);
       }
 
-      // Generate variations
-      const generated = await generateVariations({
-        apiKey: settings.openaiKey,
-        projectId: activeProject.id,
-        productName: activeProject.name,
-        description: activeProject.description || '',
+      // Generate variations through the provider (myna by default).
+      const generated = await writeVariations({
+        project: activeProject,
         type: contentType,
-        targetAudience: activeProject.targetAudience || '',
-        tone: activeProject.tone || 'professional',
-        keyFeatures: activeProject.keyFeatures || [],
+        platform,
         pageContext: context,
-        platform: platform,
-        includeLink: includeLink,
-        productUrl: activeProject.url || '',
+        includeLink,
         count: 5,
         generateTitle: showTitleField,
       });
-
-      // Handle response - could be array or object with title
-      let variationsArray;
-      let title = '';
-      
-      if (showTitleField && generated.title) {
-        // Response includes title
-        title = generated.title;
-        variationsArray = generated.variations || [];
-      } else if (Array.isArray(generated)) {
-        // Response is just variations array
-        variationsArray = generated;
-      } else {
-        // Fallback
-        variationsArray = [generated];
-      }
+      const variationsArray = generated.variations;
+      const title = showTitleField ? generated.title : '';
 
       // Create variation objects with IDs
       const variationObjects = variationsArray.map((text, index) => ({
@@ -305,20 +279,7 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
     setError(null);
 
     try {
-      const settings = await db.settings.get('main');
-      if (!settings?.openaiKey) {
-        throw new Error('Please configure your OpenAI API key in Settings');
-      }
-
-      const result = await suggestSubredditsAndHashtags({
-        apiKey: settings.openaiKey,
-        projectId: activeProject.id,
-        productName: activeProject.name,
-        description: activeProject.description || '',
-        targetAudience: activeProject.targetAudience || '',
-        keyFeatures: activeProject.keyFeatures || [],
-        keywords: keywords,
-      });
+      const result = await suggestPlaces({ project: activeProject, keywords });
 
       console.log('API Result:', result);
       console.log('Subreddits:', result.subreddits);
@@ -328,6 +289,7 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
       setGeneratedSubreddits(result.subreddits || []);
       setGeneratedHashtags(result.hashtags || []);
       setGeneratedSearchKeywords(result.searchKeywords || []);
+      setGeneratedForums(result.forums || []);
       
       const keywordCount = (result.searchKeywords || []).length;
       setSuccess(`Generated ${result.subreddits?.length || 0} subreddits, ${result.hashtags?.length || 0} hashtags, and ${keywordCount} search keywords!`);
@@ -361,6 +323,7 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
         keyword: k,
         platforms: ['Facebook', 'YouTube', 'LinkedIn'],
       })),
+      forums: generatedForums,
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -759,6 +722,8 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
             submittedAt: Date.now(),
           });
           console.log('Analytics tracked:', { platform, contentType, projectId: activeProject.id });
+          // Tell myna, when connected with the scope for it, so its history and recap see the post.
+          reportActivity({ platform, type: contentType, url: tab?.url || '', text, project: activeProject.name });
         } catch (analyticsErr) {
           console.error('Failed to track analytics:', analyticsErr);
           // Don't fail the whole operation if analytics fails
@@ -815,6 +780,8 @@ const ContentView = ({ activeProject, onCostUpdate }) => {
               subreddits={activeProject.suggestedSubreddits || []}
               hashtags={activeProject.suggestedHashtags || []}
               searchKeywords={activeProject.suggestedSearchKeywords || []}
+              forums={activeProject.suggestedForums || []}
+              directories={activeProject.suggestedDirectories || []}
               onCopy={handleCopy}
               compact={true}
             />
