@@ -8,9 +8,13 @@ const apply = process.argv.includes('--apply');
 const envPath = process.env.DEFPROMO_PUBLISHER_ENV;
 const root = resolve('docs/publications');
 const metadata = JSON.parse(await readFile(join(root, 'firefox-metadata.json'), 'utf8'));
+// AMO wraps plain URLs with its outgoing-link redirect in public API responses.
+const descriptionText = (text) => text.replace(/<a\b[^>]*>([^<]*)<\/a>/g, '$1');
 const capture = JSON.parse(await readFile(join(root, 'screenshots/firefox/capture.json'), 'utf8'));
 const endpoint = 'https://addons.mozilla.org/api/v5/addons/addon/defpromo/';
-const before = await (await fetch(endpoint + '?publication_read=' + Date.now())).json();
+const before = await (
+  await fetch(endpoint + '?publication_read=' + Date.now(), { signal: AbortSignal.timeout(30000) })
+).json();
 assert.equal(before.guid, 'defpromo@profullstack.com');
 assert.equal(
   before.current_version.version,
@@ -72,6 +76,7 @@ async function mutate(path, method, body, attempt = 0) {
   const form = body instanceof FormData;
   const r = await fetch(endpoint + path, {
     method,
+    signal: AbortSignal.timeout(30000),
     headers: {
       authorization: 'JWT ' + jwt(),
       ...(body && !form ? { 'content-type': 'application/json' } : {}),
@@ -102,9 +107,9 @@ try {
 assert.equal(state.version, capture.version);
 const save = () => writeFile(statePath, JSON.stringify(state, null, 2) + '\n');
 if (
-  !Object.entries(metadata).every(
-    ([key, value]) => JSON.stringify(before[key]) === JSON.stringify(value)
-  )
+  before.summary?.['en-US'] !== metadata.summary['en-US'] ||
+  descriptionText(before.description?.['en-US'] || '') !== metadata.description['en-US'] ||
+  before.requires_payment !== metadata.requires_payment
 )
   await mutate('', 'PATCH', metadata);
 state.metadataUpdated = true;
@@ -134,9 +139,11 @@ for (let i = 0; i < shots.length; i++) {
 for (const old of before.previews)
   if (!state.screenshots.some((s) => s.id === old.id))
     await mutate(`previews/${old.id}/`, 'DELETE');
-const after = await (await fetch(endpoint + '?verification=' + Date.now())).json();
+const after = await (
+  await fetch(endpoint + '?verification=' + Date.now(), { signal: AbortSignal.timeout(30000) })
+).json();
 assert.equal(after.summary['en-US'], metadata.summary['en-US']);
-assert.equal(after.description['en-US'], metadata.description['en-US']);
+assert.equal(descriptionText(after.description['en-US']), metadata.description['en-US']);
 assert.equal(after.requires_payment, true);
 for (const s of state.screenshots) assert.ok(after.previews.some((p) => p.id === s.id));
 state.verifiedAt = new Date().toISOString();

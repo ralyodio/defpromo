@@ -10,5 +10,9 @@
       "id": 408350
     }
   ],
-  "metadataUpdated": true
+  "metadataUpdated": true,
+  "publicMetadataVerifiedAt": "2026-09-13T09:51:16.398Z",
+  "publicUrl": "https://addons.mozilla.org/en-US/firefox/addon/defpromo/",
+  "retainedPreviousPreviewIds": [340023],
+  "pending": "Remove previous preview after the AMO publisher write limit expires; new description and two screenshots are public."
 }
