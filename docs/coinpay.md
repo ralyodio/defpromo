@@ -73,13 +73,11 @@ automatic per-PR policy require a separate change.
 
 ## Local checks
 
-```sh
-node --test scripts/check-coinpay-workflow.mjs
-```
+The shared [permission and setup tests](https://github.com/profullstack/coinpaybot/blob/b315d622736672f8f5a76ac56e12f0956549cd03/scripts/check-pr-workflow.mjs)
+live in CoinPayBot and run in its CI. They execute the actual workflow scripts
+with mocked GitHub responses and fake credentials, making no network requests or
+financial resources. DefPromo keeps only the small caller and repository
+configuration; the checks are maintained upstream with the shared job.
 
-These execute the actual workflow permission/setup scripts with mocked GitHub
-responses and fake credentials. They make no network requests, post no comments,
-and create no payment resources. The separate checks workflow has read-only
-permissions and no CoinPay secrets.
-
-Pinned implementation: [coinpaybot fbf0991](https://github.com/profullstack/coinpaybot/tree/fbf099175de2d8f6ed105b20d677e7a30b19cfac).
+Pinned [shared workflow b315d62](https://github.com/profullstack/coinpaybot/blob/b315d622736672f8f5a76ac56e12f0956549cd03/.github/workflows/pr-commands.yml),
+running [coinpaybot fbf0991](https://github.com/profullstack/coinpaybot/tree/fbf099175de2d8f6ed105b20d677e7a30b19cfac).
