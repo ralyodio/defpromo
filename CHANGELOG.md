@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.1] - 2026-09-13
+
+### Changed
+- Store summary and README now describe editable drafts, local activity records, provider setup and actual data flows without promising scheduling or automatic audience analytics.
+- Added version-matched publication copy, real packaged-UI screenshots and repeatable AMO listing updates.
+- No runtime behavior or permission changes.
+
 ## [1.5.0] - 2026-09-13
 
 ### Added
