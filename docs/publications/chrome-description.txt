@@ -1,0 +1,27 @@
+Draft posts and replies from your product brief, then review them before you share.
+
+DefPromo keeps your projects, writing variations and local activity history in a browser sidebar. Bring the page's context into a reply, edit the draft, and copy it or fill a supported compose box. You choose whether to publish.
+
+OPEN SPECS, PRACTICAL CONNECTIONS
+• OpenProfile: reads a site's /.well-known/openprofile.md and llms.txt before falling back to page scraping, so your product's own description informs the draft.
+• OpenConnection: connect through a one-time setup token, with permissions you choose and a connection you can revoke. myna at mynaposter.com is the provider currently integrated by DefPromo.
+• NicheDB supplies directory-backed forum suggestions alongside generated subreddit, hashtag and search ideas. Suggestions are places to investigate, not endorsements or permission to promote.
+
+FROM BRIEF TO EDITABLE DRAFT
+• Keep separate projects with their URL, audience, features and tone.
+• Generate post or comment variations, with optional links and titles where supported.
+• Review and edit the page context for a reply.
+• Reopen saved variations, copy a draft, or fill a supported form.
+• Keep a local record of form fills. Add likes, comments and shares manually to compare your own records.
+• Export and import your projects, content, settings and history as JSON.
+
+SETUP AND COSTS
+Connect your myna account in Settings using a setup token from https://mynaposter.com/connect. Alternatively, select Your own keys and enter an OpenAI API key. With your own keys, reading a product page that has neither supported site file also requires a configured scraper service. Provider accounts, access and usage charges are separate from the extension; installing DefPromo does not include free AI usage.
+
+CONTROL AND PRIVACY
+Projects, settings and history are stored in your browser. Generation sends the relevant project brief and reply context to your selected provider. Product analysis sends the product URL; suggestions can send keywords to NicheDB. If you grant myna activity:write, form-fill activity, text and page URL are also sent to myna. Exported settings can contain credentials: keep backup files private.
+
+DefPromo fills forms; it does not schedule posts or automatically publish them. Its activity counts are not verified posts, reach, follower growth or platform-wide analytics. Check the draft, the destination and each community's rules before sharing. Site changes can affect form filling; copying remains available.
+
+Source and support: https://github.com/ralyodio/defpromo
+Privacy: https://github.com/ralyodio/defpromo/blob/master/PRIVACY.md

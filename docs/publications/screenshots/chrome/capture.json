@@ -1,0 +1,19 @@
+{
+  "version": "1.5.1",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "actualPackagedUI": true,
+  "isolatedLocalFixture": true,
+  "fixtureProject": "Field Notes — example project",
+  "drafts": "Manually authored sample drafts, marked in the UI",
+  "fabricatedPerformanceMetrics": false,
+  "providerRequests": 0,
+  "publishedPosts": 0,
+  "screenshots": [
+    "01-project.png",
+    "02-drafts.png",
+    "03-settings.png"
+  ]
+}

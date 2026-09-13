@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "DefPromo",
-  "version": "1.5.0",
-  "description": "AI-powered social media self-promotion assistant with analytics",
+  "version": "1.5.1",
+  "description": "Draft, edit and reuse social posts and replies from your product brief. Local project history; you choose when to share.",
   "homepage_url": "https://defpromo.com",
   "permissions": [
     "storage",
