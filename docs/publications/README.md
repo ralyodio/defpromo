@@ -15,6 +15,8 @@ Checked September 13, 2026 against the public store pages, the AMO API, reposito
 
 The source release adds OpenProfile and OpenConnection in 1.5.0. Firefox copy names those as a version distinction while 1.4.9 remains publicly offered, and its screenshots come from that exact AMO XPI. Recheck the current store package before applying future metadata. The update script deliberately stops if the published package no longer matches the screenshot version.
 
+At 10:46 UTC on September 13, the Firefox description, summary, paid-service disclosure and two new screenshots were publicly verified; the previous screenshot was removed. Release 1.5.1 was successfully submitted to AMO as version 6482233 and awaits review. Chrome accepted the 1.5.1 package submission, while its update service still offered 1.5.0. Firefox still offered 1.4.9, so its live description remains matched to that version. Chrome's detailed listing copy and images are ready for the publisher's manual dashboard upload. Package submission does not establish public availability.
+
 ## Evidence behind the copy
 
 | Claim                                  | Evidence and limit                                                                                                                                                                                                                                                                                 |
