@@ -1,0 +1,6 @@
+# pnpm 11 refuses to run a dependency's build script unless it is named
+# here, and without this file `pnpm install` exits non-zero on esbuild, which
+# breaks every `pnpm <script>` (they run a deps check first) and CI.
+allowBuilds:
+  esbuild: true
+  spawn-sync: false

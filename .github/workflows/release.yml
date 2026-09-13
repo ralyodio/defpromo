@@ -1,0 +1,261 @@
+name: Extension Release Pipeline
+
+# The same pipeline marksyncr.com runs: a v* tag (or a dispatch with publish
+# on) builds the Chrome and Firefox zips, attaches them to the GitHub release,
+# uploads to the Chrome Web Store and submits for review, and signs and submits
+# to Firefox Add-ons. The credentials come from one secret, ENV_FILE, whose
+# lines are the CHROME_* and FIREFOX_* keys kept in the logicsrc vault
+# profullstack/defpromo--prod.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish to stores (false = build only)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Extension
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Extract and validate version
+        id: version
+        run: |
+          MANIFEST_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('public/manifest.json', 'utf-8')).version")
+          FIREFOX_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('public/manifest.firefox.json', 'utf-8')).version")
+          if [[ "$MANIFEST_VERSION" != "$FIREFOX_VERSION" ]]; then
+            echo "::error::Chrome manifest ($MANIFEST_VERSION) and Firefox manifest ($FIREFOX_VERSION) disagree"
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            TAG_VERSION="${GITHUB_REF_NAME#v}"
+            if [[ "$TAG_VERSION" != "$MANIFEST_VERSION" ]]; then
+              echo "::error::Tag version ($TAG_VERSION) does not match manifest version ($MANIFEST_VERSION)"
+              exit 1
+            fi
+          fi
+          echo "version=$MANIFEST_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building version: $MANIFEST_VERSION"
+
+      - name: Build Chrome
+        run: |
+          BROWSER=chrome npx vite build
+          BROWSER=chrome node scripts/post-build.js
+          (cd dist/chrome && zip -qr ../defpromo-chrome.zip .)
+
+      - name: Build Firefox
+        run: |
+          BROWSER=firefox npx vite build
+          BROWSER=firefox node scripts/post-build.js
+          (cd dist/firefox && zip -qr ../defpromo-firefox.zip .)
+
+      - name: Verify build output
+        run: |
+          ls -lh dist/*.zip
+          test -f dist/defpromo-chrome.zip || { echo "::error::Chrome ZIP not found"; exit 1; }
+          test -f dist/defpromo-firefox.zip || { echo "::error::Firefox ZIP not found"; exit 1; }
+          unzip -p dist/defpromo-chrome.zip manifest.json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const m=JSON.parse(s);if(!m.host_permissions.includes("https://mynaposter.com/*")){console.error("chrome manifest lacks mynaposter host permission");process.exit(1)}})'
+
+      - name: Upload Chrome ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: defpromo-chrome
+          path: dist/defpromo-chrome.zip
+          retention-days: 30
+
+      - name: Upload Firefox ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: defpromo-firefox
+          path: dist/defpromo-firefox.zip
+          retention-days: 30
+
+      # The GitHub release carries the same zips a person would upload by hand,
+      # so a store outage or a gated review never leaves the build unreachable.
+      - name: Attach to the GitHub release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "DefPromo ${GITHUB_REF_NAME#v}" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber dist/defpromo-chrome.zip dist/defpromo-firefox.zip
+
+  chrome-release:
+    name: Publish to Chrome Web Store
+    needs: build
+    if: |
+      github.ref_type == 'tag' ||
+      (github.event_name == 'workflow_dispatch' && inputs.publish)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Load environment variables
+        env:
+          ENV_CONTENT: ${{ secrets.ENV_FILE }}
+        run: |
+          if [[ -z "$ENV_CONTENT" ]]; then
+            echo "::error::The ENV_FILE secret is empty. Pull profullstack/defpromo--prod from the logicsrc vault and set it."
+            exit 1
+          fi
+          while IFS='=' read -r key value; do
+            [[ -z "$key" || "$key" =~ ^# ]] && continue
+            [[ -n "$value" ]] && echo "::add-mask::$value"
+            echo "${key}=${value}" >> "$GITHUB_ENV"
+          done <<< "$ENV_CONTENT"
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: defpromo-chrome
+
+      - name: Authenticate with Chrome Web Store
+        id: auth
+        run: |
+          RESPONSE=$(curl -sS -X POST "https://oauth2.googleapis.com/token" \
+            -d "client_id=$CHROME_CLIENT_ID" \
+            -d "client_secret=$CHROME_CLIENT_SECRET" \
+            -d "refresh_token=$CHROME_REFRESH_TOKEN" \
+            -d "grant_type=refresh_token")
+          ACCESS_TOKEN=$(echo "$RESPONSE" | jq -r '.access_token // empty')
+          if [[ -z "$ACCESS_TOKEN" ]]; then
+            echo "::error::Failed to obtain Chrome Web Store access token"
+            echo "$RESPONSE" | jq '{error, error_description}' 2>/dev/null || echo "$RESPONSE"
+            exit 1
+          fi
+          echo "::add-mask::$ACCESS_TOKEN"
+          echo "token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
+          echo "Chrome Web Store authentication successful"
+
+      - name: Upload to Chrome Web Store
+        run: |
+          RESPONSE=$(curl -sS \
+            -X PUT \
+            -H "Authorization: Bearer ${{ steps.auth.outputs.token }}" \
+            -H "x-goog-api-version: 2" \
+            -T defpromo-chrome.zip \
+            "https://www.googleapis.com/upload/chromewebstore/v1.1/items/$CHROME_EXTENSION_ID")
+          echo "Upload response:"
+          echo "$RESPONSE" | jq .
+          UPLOAD_STATE=$(echo "$RESPONSE" | jq -r '.uploadState')
+          if [[ "$UPLOAD_STATE" != "SUCCESS" ]]; then
+            echo "::error::Chrome upload failed with state: $UPLOAD_STATE"
+            echo "$RESPONSE" | jq '.itemError // .'
+            exit 1
+          fi
+          echo "Chrome extension uploaded successfully"
+
+      - name: Submit to Chrome Web Store for review
+        run: |
+          RESPONSE=$(curl -sS \
+            -X POST \
+            -H "Authorization: Bearer ${{ steps.auth.outputs.token }}" \
+            -H "x-goog-api-version: 2" \
+            -H "Content-Length: 0" \
+            "https://www.googleapis.com/chromewebstore/v1.1/items/$CHROME_EXTENSION_ID/publish")
+          echo "Publish response:"
+          echo "$RESPONSE" | jq .
+          STATUS=$(echo "$RESPONSE" | jq -r '.status[0] // empty')
+          ERROR_MSG=$(echo "$RESPONSE" | jq -r '.error.message // empty')
+          VERSION="${{ needs.build.outputs.version }}"
+          if [[ "$STATUS" == "OK" || "$STATUS" == "PUBLISHED_WITH_FRICTION_WARNING" || "$STATUS" == "PENDING_REVIEW" ]]; then
+            echo "Chrome extension v$VERSION submitted (status: $STATUS)"
+            echo "- **Chrome**: v$VERSION submitted for review (\`$STATUS\`)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # The package uploads and then Google refuses to submit it. The usual
+          # cause is the Privacy practices form: Chrome invalidates the
+          # permission justifications whenever the manifest's permission set
+          # changes (this release added two hosts), and only a human in the
+          # dashboard can clear that. A release that reaches no user is a failed
+          # release, so this is an error, not a warning.
+          if echo "$ERROR_MSG" | grep -qiE "publish condition not met|privacy"; then
+            {
+              echo "- **Chrome**: :x: v$VERSION uploaded as a draft but **NOT submitted**"
+              echo "  - \`$ERROR_MSG\`"
+              echo "  - Fix: open <https://chrome.google.com/webstore/devconsole>, select DefPromo,"
+              echo "    complete the **Privacy practices** tab, then **Submit for review**."
+              echo "  - Re-running this workflow will not clear it."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error title=Chrome publish gated::v$VERSION uploaded as a draft but NOT submitted. Complete the Privacy practices tab at https://chrome.google.com/webstore/devconsole and submit for review. $ERROR_MSG"
+            exit 1
+          fi
+          echo "- **Chrome**: :x: v$VERSION publish failed (\`${STATUS:-no status}\`)" >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::Chrome publish failed with status: ${STATUS:-none}"
+          echo "$RESPONSE" | jq '.statusDetail // .error // .'
+          exit 1
+
+  firefox-release:
+    name: Publish to Firefox Add-ons
+    needs: build
+    if: |
+      github.ref_type == 'tag' ||
+      (github.event_name == 'workflow_dispatch' && inputs.publish)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Load environment variables
+        env:
+          ENV_CONTENT: ${{ secrets.ENV_FILE }}
+        run: |
+          if [[ -z "$ENV_CONTENT" ]]; then
+            echo "::error::The ENV_FILE secret is empty. Pull profullstack/defpromo--prod from the logicsrc vault and set it."
+            exit 1
+          fi
+          while IFS='=' read -r key value; do
+            [[ -z "$key" || "$key" =~ ^# ]] && continue
+            [[ -n "$value" ]] && echo "::add-mask::$value"
+            echo "${key}=${value}" >> "$GITHUB_ENV"
+          done <<< "$ENV_CONTENT"
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: defpromo-firefox
+
+      - name: Unpack extension
+        run: |
+          mkdir -p extension
+          unzip -q defpromo-firefox.zip -d extension
+          ls -la extension/
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install web-ext
+        run: npm install -g web-ext
+
+      # The add-on id in manifest.firefox.json (defpromo@profullstack.com) is
+      # what ties this upload to the existing listing.
+      - name: Submit to AMO
+        run: |
+          web-ext sign \
+            --source-dir ./extension \
+            --artifacts-dir ./artifacts \
+            --api-key "$FIREFOX_JWT_ISSUER" \
+            --api-secret "$FIREFOX_JWT_SECRET" \
+            --channel listed \
+            --approval-timeout 0
+          echo "Firefox extension v${{ needs.build.outputs.version }} submitted to AMO"
+          echo "- **Firefox**: v${{ needs.build.outputs.version }} submitted to AMO (human review queue)" >> "$GITHUB_STEP_SUMMARY"
