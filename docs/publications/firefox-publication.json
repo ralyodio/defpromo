@@ -11,8 +11,14 @@
     }
   ],
   "metadataUpdated": true,
-  "publicMetadataVerifiedAt": "2026-09-13T09:51:16.398Z",
+  "publicMetadataVerifiedAt": "2026-09-13T10:46:34.491Z",
   "publicUrl": "https://addons.mozilla.org/en-US/firefox/addon/defpromo/",
-  "retainedPreviousPreviewIds": [340023],
-  "pending": "Remove previous preview after the AMO publisher write limit expires; new description and two screenshots are public."
+  "retainedPreviousPreviewIds": [],
+  "verifiedAt": "2026-09-13T10:46:03.459Z",
+  "packageSubmission": {
+    "version": "1.5.1",
+    "amoVersionId": 6482233,
+    "status": "awaiting_review",
+    "submittedAt": "2026-09-13T10:45:34Z"
+  }
 }
