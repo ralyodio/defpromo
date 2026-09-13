@@ -1,0 +1,14 @@
+# Manual PR commands only. The workflow additionally verifies current
+# repository write/maintain/admin permission before invoking CoinPay.
+enabled: true
+defaultFiat: USD
+defaultCrypto: usdc_pol
+minRoleToCreateInvoice: collaborator
+requireApprovalForNonMaintainers: true
+
+# This business-issued formal-invoice flow is open to all human commenters
+# inside the upstream action. Keep it off; it does not link contributor payees.
+githubInvoices:
+  enabled: false
+
+# No automatic PR trigger or per-PR amount is configured.

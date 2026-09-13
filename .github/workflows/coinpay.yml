@@ -1,0 +1,67 @@
+name: CoinPay PR commands
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: coinpay-${{ github.repository_id }}-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  coinpay:
+    if: github.event.issue.pull_request && github.event.comment.user.type == 'User' && startsWith(github.event.comment.body, '/coinpay ')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify repository permission
+        id: authorization
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            core.setOutput('allowed', false);
+            const comment = context.payload.comment;
+            if (context.eventName !== 'issue_comment' || context.payload.action !== 'created' ||
+                !context.payload.issue?.pull_request || comment?.user?.type !== 'User' ||
+                !comment.body?.startsWith('/coinpay ')) return;
+            try {
+              const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+                ...context.repo,
+                username: comment.user.login,
+              });
+              const allowed = ['write', 'maintain', 'admin'].includes(data.permission);
+              core.setOutput('allowed', allowed);
+              if (!allowed) core.notice('CoinPay commands require current repository write permission.');
+            } catch {
+              core.warning('Could not verify repository permission; CoinPay was not invoked.');
+            }
+
+      - name: Check CoinPay setup
+        id: setup
+        if: steps.authorization.outputs.allowed == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          COINPAY_API_KEY: ${{ secrets.COINPAY_API_KEY }}
+          COINPAY_BUSINESS_ID: ${{ secrets.COINPAY_BUSINESS_ID }}
+        with:
+          script: |
+            const configured = Boolean(process.env.COINPAY_API_KEY?.trim() && process.env.COINPAY_BUSINESS_ID?.trim());
+            core.setOutput('configured', configured);
+            if (!configured) {
+              core.notice('CoinPay setup is incomplete; no payment or invoice was created.');
+              await core.summary.addRaw('Configure COINPAY_API_KEY and COINPAY_BUSINESS_ID as repository secrets or inherited organization secrets. See docs/coinpay.md.').write();
+            }
+
+      # Runs the reviewed action only; never checks out or executes PR code.
+      - name: Run CoinPay command
+        if: steps.authorization.outputs.allowed == 'true' && steps.setup.outputs.configured == 'true'
+        uses: profullstack/coinpaybot@fbf099175de2d8f6ed105b20d677e7a30b19cfac
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          coinpay-api-key: ${{ secrets.COINPAY_API_KEY }}
+          coinpay-business-id: ${{ secrets.COINPAY_BUSINESS_ID }}
+          trusted-comment-author: github-actions[bot]

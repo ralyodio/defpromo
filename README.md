@@ -150,6 +150,10 @@ Open **Analytics** to review your project's form-fill counts by platform and dat
 
 ## Development
 
+Maintainers can prepare contribution payment requests from pull-request comments
+with [CoinPay commands](docs/coinpay.md). Setup, explicit recipient verification,
+and a preview are documented there; no automatic per-PR charge is configured.
+
 ### Available Scripts
 
 ```bash
