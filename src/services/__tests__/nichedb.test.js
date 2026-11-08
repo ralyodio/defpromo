@@ -15,15 +15,15 @@ describe('nichedb', () => {
       expect(url).toBe('https://nichedb.dev/api/v1/search?q=self%20hosting%20podcast&collection=forums&limit=30');
       return json(200, {
         items: [
-          { data: { board: 'https://tsbb.dev', forum: 'announcements', forumName: 'Announcements' } },
-          { data: { board: 'https://tsbb.dev', forum: 'announcements', forumName: 'Announcements' } },
+          { data: { board: 'https://tsbb.pwa.pit.world', forum: 'announcements', forumName: 'Announcements' } },
+          { data: { board: 'https://tsbb.pwa.pit.world', forum: 'announcements', forumName: 'Announcements' } },
           { data: { board: 'https://bbs.hqtui.com/', forum: 'news' } },
           { data: {} },
         ],
       });
     });
     expect(await searchForums(['self hosting', 'podcast'], fetchImpl)).toEqual([
-      { name: 'Announcements on tsbb.dev', url: 'https://tsbb.dev/f/announcements' },
+      { name: 'Announcements on tsbb.dev', url: 'https://tsbb.pwa.pit.world/f/announcements' },
       { name: 'news on bbs.hqtui.com', url: 'https://bbs.hqtui.com/f/news' },
     ]);
   });

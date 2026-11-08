@@ -95,9 +95,9 @@ describe('provider', () => {
 
   it('suggestPlaces over myna returns forums and a submit link; with your own key the forums come from nichedb', async () => {
     await db.settings.put({ id: 'main', myna: CONNECTION });
-    fetchSpy.mockResolvedValue(reply(200, { subreddits: ['selfhosted'], hashtags: ['indiehackers'], keywords: ['post from terminal'], forums: [{ name: 'f', url: 'https://tsbb.dev/f/x' }] }));
+    fetchSpy.mockResolvedValue(reply(200, { subreddits: ['selfhosted'], hashtags: ['indiehackers'], keywords: ['post from terminal'], forums: [{ name: 'f', url: 'https://tsbb.pwa.pit.world/f/x' }] }));
     const viaMyna = await suggestPlaces({ project, keywords: 'terminal' });
-    expect(viaMyna).toMatchObject({ subreddits: ['selfhosted'], searchKeywords: ['post from terminal'], forums: [{ url: 'https://tsbb.dev/f/x' }] });
+    expect(viaMyna).toMatchObject({ subreddits: ['selfhosted'], searchKeywords: ['post from terminal'], forums: [{ url: 'https://tsbb.pwa.pit.world/f/x' }] });
     expect(viaMyna.directories[0].url).toBe('https://nichedb.dev/submit?url=https%3A%2F%2Fmynaposter.com');
     expect(JSON.parse(fetchSpy.mock.calls[0][1].body).project.description).toMatch(/Keywords the owner named: terminal/);
 
